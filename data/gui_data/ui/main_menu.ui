@@ -99,9 +99,9 @@ QPushButton::pressed {
       <height>91</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout">
+    <layout class="QGridLayout" name="layout_tools">
      <item row="0" column="0">
-      <widget class="QWidget" name="frm_tools" native="true">
+      <widget class="QWidget" name="widget" native="true">
        <property name="styleSheet">
         <string notr="true"/>
        </property>
@@ -222,11 +222,7 @@ QPushButton::pressed {
       <height>481</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="0">
-      <widget class="QWidget" name="frm_notes" native="true"/>
-     </item>
-    </layout>
+    <layout class="QGridLayout" name="layout_notes"/>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -241,8 +237,6 @@ QPushButton::pressed {
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
- <resources>
-  <include location="resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

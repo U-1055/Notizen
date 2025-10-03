@@ -36,6 +36,7 @@ class Ui_Form(object):
 
         self.txt_content = QTextEdit(self.gridLayoutWidget)
         self.txt_content.setObjectName(u"txt_content")
+        self.txt_content.setReadOnly(True)
 
         self.main_layout.addWidget(self.txt_content, 1, 0, 1, 2)
 
@@ -48,6 +49,11 @@ class Ui_Form(object):
         self.lbl_date_changed.setObjectName(u"lbl_date_changed")
 
         self.main_layout.addWidget(self.lbl_date_changed, 2, 1, 1, 1)
+
+        self.frm_tags = QWidget(self.gridLayoutWidget)
+        self.frm_tags.setObjectName(u"frm_tags")
+
+        self.main_layout.addWidget(self.frm_tags, 2, 0, 1, 1)
 
         self.main_layout.setColumnStretch(0, 3)
         self.main_layout.setColumnStretch(1, 1)

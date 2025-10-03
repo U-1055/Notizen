@@ -31,7 +31,11 @@
      </widget>
     </item>
     <item row="1" column="0" colspan="2">
-     <widget class="QTextEdit" name="txt_content"/>
+     <widget class="QTextEdit" name="txt_content">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
     </item>
     <item row="0" column="1" alignment="Qt::AlignRight|Qt::AlignTop">
      <widget class="QPushButton" name="btn_ops">
@@ -46,6 +50,9 @@
        <string>TextLabel</string>
       </property>
      </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QWidget" name="frm_tags" native="true"/>
     </item>
    </layout>
   </widget>
