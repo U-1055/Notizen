@@ -1,10 +1,16 @@
 import datetime
 
 from src.gui.view import MainWindow
+from src.gui.widgets import NoteView, NoteWindow
 from src.src.model import DataModel
+
+from PySide6.QtCore import Signal, QObject
 
 
 class Logic:
+
+    # Сигналы для тестов
+    note_added_to_menu = Signal(NoteView)
 
     def __init__(self, model, view):
         self._model: DataModel = model
@@ -45,7 +51,24 @@ class Logic:
             note_view.date_changing = self._model.get_note_date_changing(note)
             note_view.tags = self._model.get_note_tags(note)
 
-            note_view.pressed.connect(lambda: print('Clicked!'))
+            note_view.pressed.connect(self._open_note)
+
+    def _open_note(self, note_view: NoteView):
+        """Обрабатывает открытие заметки."""
+        note_window = self._view.open_note_window()
+
+        self.note_handler = NoteWindowHandler(note_window)   # ToDo: ошибка с сигналом (не привязан к экземпляру)
+
+        note_window.tags = note_view.tags
+        note_window.name = note_view.name
+        note_window.date_changing = note_view.date_changing
+        note_window.content = note_view.content
+
+        self.note_handler.closed.connect(self._close_note)
+
+    def _close_note(self):
+        self._view.open_main_menu()
+
 
 class NoteWidgetHandler:
 
@@ -56,5 +79,15 @@ class NoteWidgetHandler:
         self._tags: list[str] = None
 
 
-class NoteWindowHandler:
-    pass
+class NoteWindowHandler(QObject):
+    closed = Signal()  # Handler сам обрабатывает сигналы от NoteWindow
+
+    def __init__(self, note_window: NoteWindow):
+        super().__init__()
+        self._note_window = note_window
+        self._note_window.closed.connect(self.closed.emit)
+
+    def _close_window(self):
+        self.closed.emit()
+        self._note_window.close_window()
+

@@ -15,39 +15,38 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLineEdit, QPushButton,
-    QSizePolicy, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLayout, QLineEdit,
+    QPushButton, QSizePolicy, QVBoxLayout, QWidget)
 
 class Ui_Form(object):
     def setupUi(self, Form):
         if not Form.objectName():
             Form.setObjectName(u"Form")
         Form.resize(1030, 583)
-        self.verticalLayoutWidget = QWidget(Form)
-        self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
-        self.verticalLayoutWidget.setGeometry(QRect(0, 0, 1031, 591))
-        self.verticalLayout_2 = QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout = QVBoxLayout(Form)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout_2 = QVBoxLayout()
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.btn_return = QPushButton(self.verticalLayoutWidget)
+        self.horizontalLayout.setSizeConstraint(QLayout.SetMaximumSize)
+        self.btn_return = QPushButton(Form)
         self.btn_return.setObjectName(u"btn_return")
 
-        self.horizontalLayout.addWidget(self.btn_return, 0, Qt.AlignLeft|Qt.AlignTop)
+        self.horizontalLayout.addWidget(self.btn_return)
 
-        self.widget = QWidget(self.verticalLayoutWidget)
+        self.widget = QWidget(Form)
         self.widget.setObjectName(u"widget")
 
-        self.horizontalLayout.addWidget(self.widget, 0, Qt.AlignLeft)
+        self.horizontalLayout.addWidget(self.widget)
 
-        self.lineEdit = QLineEdit(self.verticalLayoutWidget)
+        self.lineEdit = QLineEdit(Form)
         self.lineEdit.setObjectName(u"lineEdit")
         self.lineEdit.setMaximumSize(QSize(133, 16777215))
 
         self.horizontalLayout.addWidget(self.lineEdit)
 
-        self.pushButton = QPushButton(self.verticalLayoutWidget)
+        self.pushButton = QPushButton(Form)
         self.pushButton.setObjectName(u"pushButton")
 
         self.horizontalLayout.addWidget(self.pushButton)
@@ -66,6 +65,9 @@ class Ui_Form(object):
 
         self.verticalLayout_2.setStretch(0, 1)
         self.verticalLayout_2.setStretch(1, 6)
+
+        self.verticalLayout.addLayout(self.verticalLayout_2)
+
 
         self.retranslateUi(Form)
 

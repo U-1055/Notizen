@@ -15,6 +15,19 @@ class DataModel:
             return False
         return True
 
+    def update_state(self):
+        pass
+
+    def validate_files(self):
+        """Проверяет файлы на соответствие структуре (notes и DBB)."""
+
+    def reclaim_note(self):
+        pass
+
+    def get_style(self) -> str:
+        """Возвращает стиль QSS."""
+        # ToDo: узнать про взаимодействие с файлом ресурсов
+
     def get_note_data(self, note: str):
         return
 
