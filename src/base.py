@@ -7,6 +7,10 @@ class DataStructConst:
     name = 'name'
     tags = 'tags'
 
+    note_struct = {name: "", tags: "", date_changing: ""}
+
+    datetime_date_format = '%d.%m.%y'
+
 
 class GuiConst:
     max_text_view_length = 250  # Максимальная длина текста в предпросмотре (на виджете заметки)
