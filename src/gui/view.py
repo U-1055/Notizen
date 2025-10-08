@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget
 from PySide6.QtCore import Signal
 
-from src.interfaces import View
+from src.interfaces import IView
 from src.gui.ui_view import Ui_Form
 from src.gui.widgets import NoteView, NoteWindow
 from src.base import GuiLabels

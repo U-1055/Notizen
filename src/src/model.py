@@ -4,8 +4,8 @@ from src.base import DataConst
 
 class DataModel:
 
-    def __init__(self):
-        pass
+    def __init__(self, notes: Path, notes_data: Path, resources: Path):
+        self._notes, self._notes_data, self._resources = notes, notes_data, resources
 
     def _check_compliance(self, path: Path) -> bool:
         """Проверяет соответствие файла требованиям"""

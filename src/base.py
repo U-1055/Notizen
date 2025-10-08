@@ -2,6 +2,12 @@ class DataConst:
     max_size = 10 * 1024 * 1024  # Максимальный размер файла - 10 Мб
 
 
+class DataStructConst:
+    date_changing = 'date_changing'
+    name = 'name'
+    tags = 'tags'
+
+
 class GuiConst:
     max_text_view_length = 250  # Максимальная длина текста в предпросмотре (на виджете заметки)
 

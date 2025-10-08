@@ -55,7 +55,8 @@ class NoteWindow(QWidget):
 
 
 class NoteView(QWidget):
-    pressed = Signal(object)  # Сигнал нажатия на заметку. Передает экземпляр класса заметки(себя)  ToDo: как описать тип в сигнале вместо object
+    pressed = Signal(object)  # Сигнал нажатия на заметку. Передает экземпляр класса заметки(себя)
+    # ToDo: как описать тип в сигнале вместо object
 
     def __init__(self):
         super().__init__()

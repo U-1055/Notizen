@@ -51,13 +51,12 @@ class Logic:
             note_view.date_changing = self._model.get_note_date_changing(note)
             note_view.tags = self._model.get_note_tags(note)
 
-            note_view.pressed.connect(self._open_note)
+            note_view.pressed.connect(lambda note=note_view: self._open_note(note))
 
     def _open_note(self, note_view: NoteView):
         """Обрабатывает открытие заметки."""
         note_window = self._view.open_note_window()
-
-        self.note_handler = NoteWindowHandler(note_window)   # ToDo: ошибка с сигналом (не привязан к экземпляру)
+        self.note_handler = NoteWindowHandler(note_window)
 
         note_window.tags = note_view.tags
         note_window.name = note_view.name
