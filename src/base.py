@@ -7,9 +7,11 @@ class DataStructConst:
     name = 'name'
     tags = 'tags'
 
-    note_struct = {name: "", tags: "", date_changing: ""}
+    note_struct = {tags: "", date_changing: ""}
 
     datetime_date_format = '%d.%m.%y'
+    light_theme = ':/styles/light_theme'
+    dark_theme = ':/styles/dark_theme'
 
 
 class GuiConst:

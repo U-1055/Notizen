@@ -21,11 +21,18 @@ class Logic:
         self._search_text: str = None
 
         self._notes_struct: dict[str, list[str]] = {}
+
+        current_style = self._model.get_last_style()  # Установка стиля
+        style = self._model.get_style(current_style)
+        self._view.set_style(self._model.get_style(current_style))
+
+        self._damaged_notes = self._model.validate_files()
+
         self._update_state()
         self._init_menu()
 
     def _update_state(self):
-        self._notes = self._model.get_notes()
+        self._notes = tuple(filter(lambda note: note not in self._damaged_notes, self._model.get_notes()))
         self._tags = self._view.get_selected_tags()
         self._search_text = self._view.text_search()
 
@@ -90,3 +97,6 @@ class NoteWindowHandler(QObject):
         self.closed.emit()
         self._note_window.close_window()
 
+
+if __name__ == '__main__':
+    pass
