@@ -23,13 +23,16 @@ class Logic:
         self._notes_struct: dict[str, list[str]] = {}
 
         current_style = self._model.get_last_style()  # Установка стиля
-        style = self._model.get_style(current_style)
+
         self._view.set_style(self._model.get_style(current_style))
 
-        self._damaged_notes = self._model.validate_files()
+        self._damaged_notes = tuple(filter(lambda f: f != 'note#1', self._model.validate_files()))
 
         self._update_state()
         self._init_menu()
+
+        if self._damaged_notes:
+            pass  # Выводить окно с ошибками
 
     def _update_state(self):
         self._notes = tuple(filter(lambda note: note not in self._damaged_notes, self._model.get_notes()))

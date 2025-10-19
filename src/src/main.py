@@ -7,6 +7,7 @@ from src.src.logic import Logic
 from src.src.model import DataModel
 from src.base import DataStructConst
 
+
 def launch():
     notes_data_path = Path('..', '..', 'data', 'notes_data', 'notes_data')
     notes_path = Path('..', '..', 'notes')

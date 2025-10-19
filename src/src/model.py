@@ -13,9 +13,35 @@ class DataModel:
     """
     Модель. Работает с данными: заметками и данными GUI (стилями, иконками и пр.)
     """
+    # Ключи, которые возвращает метод _check_note_data_compliance
+    unknown_tags_type = 0  # Некорректный тип данных в поле tags
+    unknown_date_type = 1  # Некорректный тип данных в поле date_changing
+    unknown_keys = 2  # Лишние ключи в записи
+    no_keys = 3  # Нет ключей в записи
+    err_codes = (unknown_tags_type, unknown_date_type, unknown_keys, no_keys)
 
     def __init__(self, notes: Path, notes_data: Path, resources: Path, data_struct: DataStructConst):
         self._notes, self._notes_data, self._resources, self._data_struct = notes, notes_data, resources, data_struct
+
+    @property
+    def notes(self) -> Path:
+        """Возвращает путь к папке с заметками."""
+        return self._notes
+
+    @property
+    def notes_data(self) -> Path:
+        """Возвращает путь к базе данных."""
+        return self._notes_data
+
+    @property
+    def resources(self) -> Path:
+        """Возвращает путь к файлу ресурсов."""
+        return self._resources
+
+    @property
+    def data_struct(self) -> DataStructConst:
+        """Возвращает экземпляр класса набора констант DataStructConst."""
+        return self._data_struct
 
     def _check_compliance(self, path: Path) -> bool:
         """Проверяет соответствие файла требованиям"""
@@ -25,18 +51,22 @@ class DataModel:
             return False
         return True
 
-    def _check_note_data_compliance(self, note_data: dict) -> bool:
+    def _check_note_data_compliance(self, note_data: dict) -> int:
         """
-        Проверяет соответствие записи о заметке (в notes_data) требованиям.
+        Проверяет соответствие записи о заметке (в notes_data) требованиям. Возвращает один из err_codes или True, если
+        запись корректная.
+        :return: Код ошибки из err_codes или True, если запись корректная.
         :param note_data: словарь с данными заметки.
-        :param reclaim: восстанавливать ли данные.
         """
         def check_note_data_key(note_data: dict, key: str):
             match key:
 
                 case self._data_struct.tags:
                     if not isinstance(note_data[key], list):
-                        return False
+                        return self.unknown_tags_type
+                case self._data_struct.date_changing:
+                    if not isinstance(note_data[key], str):
+                        return self.unknown_date_type
 
         if not isinstance(note_data, dict):
             return False
@@ -44,18 +74,15 @@ class DataModel:
 
         for key in allowed_keys:  # Проверка наличия нужны ключей
             if key not in note_data:
-                return False
+                return self.no_keys
 
         for key in note_data:  # Проверка на лишние ключи
             if key not in allowed_keys:
-                return False
+                return self.unknown_keys
             else:
-                match key:  # Проверка содержимого ключей
-                    case self._data_struct.tags:
-                        if not isinstance(note_data[key], list):
-                            return False
+                check_note_data_key(note_data, key)
 
-        return True
+        return True  # Любое значение, кроме err_codes
 
     def update_state(self):
         pass
@@ -72,21 +99,21 @@ class DataModel:
         notes_with_data = []
         with shelve.open(self._notes_data) as notes_data:  # Проверка notes_data
             for note in notes_data:
-                if self._check_note_data_compliance(notes_data[note]):
+                if self._check_note_data_compliance(notes_data[note]) not in self.err_codes:
                     notes_with_data.append(note)
                 else:
-                     damaged_notes.append(note)
+                    damaged_notes.append(note)
 
         if len(notes_with_data) > len(notes_with_content):  # Если есть лишние записи в notes_data
             for note in notes_with_data:
-                if not note in notes_with_content:
+                if note not in notes_with_content:
                     with shelve.open(self._notes_data, 'w') as notes_data:
                         notes_data.pop(note)
 
-        if len(notes_with_content) > len(notes_with_data):  # Если есть лишние записи в notes_data
+        if len(notes_with_content) > len(notes_with_data):  # Если есть лишние файлы в notes
             for note in notes_with_content:
-                if not note in notes_with_data:
-                    Path(self._notes, f'{note}.txt').unlink()
+                if note not in notes_with_data and note not in damaged_notes:
+                    self.add_note(note, [])  # Если новый файл в notes_data - создаётся новая заметка с именем файла и без тегов
 
         return damaged_notes
 
@@ -96,7 +123,6 @@ class DataModel:
 
         if self._check_note_data_compliance(note_data):
             return
-
 
     def get_style(self, style: str) -> str:
         """
@@ -170,7 +196,7 @@ class DataModel:
 
     def change_note_name(self, note: str, name: str):
         if name in self.get_notes():  # Проверка на уникальность названия
-            raise ValueError(f'Name must be unique, but name {name} already exists.')  # ToDo: доделать
+            raise ValueError(f'Name must be unique, but name {name} already exists.')
 
         Path(self._notes, f'{note}.txt').rename(Path(self._notes, f'{name}.txt'))  # Переименование файла в notes
 
@@ -189,8 +215,11 @@ class DataModel:
 
             notes_data[name] = note_struct
 
-        with open(Path(self._notes, f'{name}.txt'), 'w') as note_content:
-            note_content.write('')
+        try:
+            with open(Path(self._notes, f'{name}.txt'), 'w') as note_content:  # Создание записи о заметке
+                note_content.write('')
+        except (FileExistsError, IOError, PermissionError) as error:
+            print(error)
 
 
 if __name__ == '__main__':
@@ -241,4 +270,5 @@ if __name__ == '__main__':
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
-    model.add_note('note#3', ['tag1'])
+   # model.add_note('note#1', ['tag1'])
+    
