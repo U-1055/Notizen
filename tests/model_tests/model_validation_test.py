@@ -6,6 +6,12 @@ from src.src.model import DataModel
 from src.base import DataStructConst
 
 invalid_note_structs_path = Path('..', '..', 'data', 'test_cases', 'base_tests', 'invalid_notes.json')
+normal_note_names = tuple(map(lambda i: f'note#{i}', range(1, 11)))
+notes_without_data = tuple(map(lambda i: f'no_note_data_note#{i}', range(1, 6)))
+notes_invalid = tuple(map(lambda i: f'invalid_note#{i}', range(1, 6)))
+notes_damaged = tuple(map(lambda i: f'damaged_note#{i}', range(1, 6)))
+notes_without_file = tuple(map(lambda i: f'no_file_note#{i}', range(1, 6)))
+
 
 def clear_base(notes_data_path: Path, notes_path: Path):
     with shelve.open(notes_data_path, 'w') as notes_data:
@@ -23,12 +29,6 @@ def set_test_state_1(notes_data_path: Path, notes_path: Path):
     with open(invalid_note_structs_path) as file:
         invalid_note_structs = json.load(file)
 
-    normal_note_names = tuple(map(lambda i: f'note#{i}', range(1, 11)))
-    notes_without_data = tuple(map(lambda i: f'no_note_data_note#{i}', range(1, 6)))
-    notes_invalid = tuple(map(lambda i: f'invalid_note#{i}', range(1, 6)))
-    notes_damaged = tuple(map(lambda i: f'damaged_note#{i}', range(1, 6)))
-    notes_without_file = tuple(map(lambda i: f'no_file_note#{i}', range(1, 6)))
-
     for name in normal_note_names:  # Создание валидных заметок
         with open(Path(notes_path, f'{name}.txt'), 'w') as note:
             note.write('')
@@ -43,7 +43,10 @@ def set_test_state_1(notes_data_path: Path, notes_path: Path):
         with shelve.open(notes_data_path, 'w') as note:
             note[name] = invalid_note_structs[idx]
 
-    for name in enumerate(notes_invalid):
+        with open(Path(notes_path, f'{name}.txt'), 'w') as note_data:
+            note_data.write('')
+
+    for name in notes_invalid:  # Создание заметок неверного файла
         with open(Path(notes_path, f'{name}.png'), 'w') as invalid_file:
             invalid_file.write('')
 
@@ -73,7 +76,7 @@ def test(model: DataModel,
     notes_before = list(model.get_notes())  # Записи о заметках и файлы содержимого заметок
     notes_data_before = list(map(lambda path: path.stem, model.notes.iterdir()))
 
-    if notes_must_be_deleted:
+    if notes_must_be_deleted is not None:
         notes_must_be_deleted = list(notes_must_be_deleted)
         for i, note in enumerate(notes_must_be_deleted):  # Проверка на существование заметок, которые должны быть удалены
             if note not in notes_before:
@@ -83,17 +86,22 @@ def test(model: DataModel,
             if note not in notes_data_before:
                 notes_must_be_deleted.append(note)
 
-    if notes_data_must_be_deleted:
+    if notes_data_must_be_deleted is not None:
         notes_data_must_be_deleted = list(notes_data_must_be_deleted)
         for i, note_data in enumerate(notes_data_must_be_deleted):  # Проверка на существование записи о заметке, которая (запись) должна быть удалена
             if not Path(model.notes_data, f'{note_data}.txt').is_file():
                 notes_data_must_be_deleted.pop(i)
 
-    if notes_must_be_created:
+    if notes_must_be_created is not None:
         notes_must_be_created = list(notes_must_be_created)
 
         for note_data in notes_data_before:  # Проверка файлов notes без записи о заметке (есть содержимое - нет записи)
-            if note_data not in notes_before and model._check_compliance(Path(model.notes_data, f'{note_data}.txt')):
+            note_data_path = Path(model.notes_data, f'{note_data}.txt')
+
+            if not note_data_path.is_file():
+                continue
+
+            if note_data not in notes_before and model._check_compliance(note_data_path):
                 notes_must_be_created.append(note_data)
 
         for i, note in enumerate(notes_must_be_created):  # Проверка на наличие уже существующих записей
@@ -105,21 +113,26 @@ def test(model: DataModel,
     notes_after = model.get_notes()
     notes_data_after = tuple(Path(model.notes).iterdir())
 
-    if notes_must_be_deleted:
+    if notes_must_be_deleted is not None:
         for note in notes_must_be_deleted:
-            assert note not in notes_after, f'This note must be deleted: {note}'
+            assert note not in notes_after, (f'This note must be deleted: {note}. \n '
+                                             f'Notes for deleting: {notes_must_be_deleted} \n'
+                                             f'Notes after: {notes_after} \n'
+                                             f'Notes before: {notes_before}')
 
-    if notes_data_must_be_deleted:
+    if notes_data_must_be_deleted is not None:
         for note_data in notes_data_must_be_deleted:
             assert note_data not in notes_data_after, f'This note_data file must be deleted: {note_data}'
 
-    if notes_must_be_created:
+    if notes_must_be_created is not None:
         for note in notes_must_be_created:
             assert note in notes_after, f'This note must be created: {note}'
 
-    if notes_must_be_damaged:
+    if notes_must_be_damaged is not None:
         for note in notes_must_be_damaged:
-            assert note in damaged_notes, f'This note must be marked as damaged: {note}'
+            assert note in damaged_notes, (f'This note must be marked as damaged: {note}. \n'
+                                           f'Notes marked as damaged: {damaged_notes} \n'
+                                           f'Notes must be marked as damaged: {notes_must_be_damaged}')
 
 
 if __name__ == '__main__':
@@ -128,7 +141,13 @@ if __name__ == '__main__':
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
-
+    clear_base(notes_data_path, notes_path)
     set_test_state_1(notes_data_path, notes_path)
-    print(model.get_notes())
-    #test(DataModel(notes_path, notes_data_path, resource_path, DataStructConst()))
+
+    test(
+        DataModel(notes_path, notes_data_path, resource_path, DataStructConst()),
+        list(notes_without_file),
+        list(notes_invalid),
+        list(notes_without_data),
+        list(notes_damaged)
+    )
