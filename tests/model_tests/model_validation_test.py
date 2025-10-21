@@ -1,6 +1,7 @@
 import json
 import shelve
 from pathlib import Path
+import typing as tp
 
 from src.src.model import DataModel
 from src.base import DataStructConst
@@ -11,6 +12,30 @@ notes_without_data = tuple(map(lambda i: f'no_note_data_note#{i}', range(1, 6)))
 notes_invalid = tuple(map(lambda i: f'invalid_note#{i}', range(1, 6)))
 notes_damaged = tuple(map(lambda i: f'damaged_note#{i}', range(1, 6)))
 notes_without_file = tuple(map(lambda i: f'no_file_note#{i}', range(1, 6)))
+
+
+class TestBaseManager:
+
+    def __init__(self, notes_path: Path, notes_data_path: Path, data_struct: DataStructConst):
+        self._notes_path, self._notes_data_path, self._data_struct = notes_path, notes_data_path, data_struct
+
+    def create_file(self, file_name: str):
+        """Создаёт файл в notes."""
+        with open(Path(self._notes_path, file_name), 'w') as note:
+            note.write('')
+
+    def create_note_data(self, note: str, tags: list[str] | tuple[str, ...], date_changing: str):
+        """Создаёт запись о заметке в notes_data."""
+        data = self._data_struct.note_struct
+        data[self._data_struct.tags] = tags
+        data[self._data_struct.date_changing] = date_changing
+
+        with shelve.open(self._notes_data_path, 'w') as notes_data:
+            notes_data[note] = data
+
+    def get_note_data(self, note: str):
+        with shelve.open(self._notes_data_path) as notes_data:
+            return notes_data[note]
 
 
 def clear_base(notes_data_path: Path, notes_path: Path):
@@ -43,14 +68,17 @@ def set_test_state_1(notes_data_path: Path, notes_path: Path):
         with shelve.open(notes_data_path, 'w') as note:
             note[name] = invalid_note_structs[idx]
 
-        with open(Path(notes_path, f'{name}.txt'), 'w') as note_data:
+        with open(Path(notes_path, f'{name}.png'), 'w') as note_data:
             note_data.write('')
 
     for name in notes_invalid:  # Создание заметок неверного файла
         with open(Path(notes_path, f'{name}.png'), 'w') as invalid_file:
             invalid_file.write('')
 
-    for name in notes_without_file:
+        with shelve.open(notes_data_path, 'w') as notes_data:
+            notes_data[name] = data_struct.note_struct
+
+    for name in notes_without_file:  # Создание заметок без содержимого (файла notes)
         with shelve.open(notes_data_path) as notes_data:
             notes_data[name] = data_struct.note_struct
 
@@ -59,7 +87,9 @@ def test(model: DataModel,
          notes_must_be_deleted: list[str] = None,
          notes_data_must_be_deleted: list[str] = None,
          notes_must_be_created: list[str] = None,
-         notes_must_be_damaged: list[str] | tuple[str, ...] = None,
+         notes_must_be_damaged: list[str] = None,
+         notes_must_be_reclaimed: list[str] | tuple[str, ...] = None,
+         check_reclaim: tp.Callable = None
          ):
     """
 
@@ -69,7 +99,7 @@ def test(model: DataModel,
     :param notes_data_must_be_deleted: файлы notes, которые должны быть удалены (не соответствуют требованиям).
     :param notes_must_be_created: заметки, которые должны быть созданы (валидный файл в notes есть - записи в notes_data нет)
     :param notes_must_be_damaged: заметки, которые должны быть отмечены как повреждённые
-    (структура записи заметки не соответстует требованиям)
+    :param notes_must_be_reclaimed: повреждённые заметки, которые должны быть восстановлены
 
     """
 
@@ -108,10 +138,15 @@ def test(model: DataModel,
             if note in notes_before:
                 notes_must_be_created.pop(i)
 
+    if notes_must_be_reclaimed is not None:
+        for i, note in enumerate(notes_must_be_reclaimed):
+            if note not in notes_before:
+                notes_must_be_reclaimed.pop(i)
+
     damaged_notes = model.validate_files()
 
     notes_after = model.get_notes()
-    notes_data_after = tuple(Path(model.notes).iterdir())
+    notes_data_after = [path.stem for path in model.notes.iterdir()]
 
     if notes_must_be_deleted is not None:
         for note in notes_must_be_deleted:
@@ -134,20 +169,34 @@ def test(model: DataModel,
                                            f'Notes marked as damaged: {damaged_notes} \n'
                                            f'Notes must be marked as damaged: {notes_must_be_damaged}')
 
+    print(f'Test completed. State: \n Notes: {notes_after} \n Note_files: {notes_data_after}')
+
 
 if __name__ == '__main__':
+    def run_test():
+        try:
+            test(
+                DataModel(notes_path, notes_data_path, resource_path, DataStructConst()),
+                list(notes_without_file),
+                list(notes_invalid),
+                list(notes_without_data),
+                list(notes_damaged)
+            )
+        except AssertionError as error:
+            print(model.get_notes())
+            print([path.stem for path in notes_path.iterdir()])
+            raise error
+
+
     notes_data_path = Path('..', '..', 'data', 'test_cases', 'model_tests', 'test_data_struct', 'notes_data')
     notes_path = Path('..', '..', 'data', 'test_cases', 'model_tests', 'test_data_struct', 'notes')
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
-    model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
     clear_base(notes_data_path, notes_path)
-    set_test_state_1(notes_data_path, notes_path)
+    test_base_manager = TestBaseManager(notes_path, notes_data_path, DataStructConst())
 
-    test(
-        DataModel(notes_path, notes_data_path, resource_path, DataStructConst()),
-        list(notes_without_file),
-        list(notes_invalid),
-        list(notes_without_data),
-        list(notes_damaged)
-    )
+    test_base_manager.create_file('note#1.txt')
+    test_base_manager.create_note_data('note#1', '111', 14)
+    model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
+    model.reclaim_note('note#1')
+    print(test_base_manager.get_note_data('note#1'))

@@ -9,7 +9,7 @@ class DataStructConst:
 
     note_struct = {tags: [], date_changing: ""}
 
-    datetime_date_format = '%d.%m.%y'
+    datetime_date_format = '%d.%m.%Y'
     light_theme = ':/styles/light_theme'
     dark_theme = ':/styles/dark_theme'
 

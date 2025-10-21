@@ -54,35 +54,41 @@ class DataModel:
             return False
         return True
 
-    def _check_note_data_compliance(self, note_data: dict) -> int:
+    def _check_note_data_compliance(self, note_data: dict) -> list:  # ToDo: сделать так, чтобы метод возвращал список кодов ошибки (сделано)
         """
         Проверяет соответствие записи о заметке (в notes_data) требованиям. Возвращает один из err_codes или True, если
         запись корректная.
-        :return: Код ошибки из err_codes или True, если запись корректная.
+        :return: Список кодов ошибки.
         :param note_data: словарь с данными заметки.
         """
+        err_codes = []  # Список кодов ошибки
 
         if not isinstance(note_data, dict):
-            return self.no_dict_type
+            err_codes.append(self.no_dict_type)
         allowed_keys = (self._data_struct.tags, self._data_struct.date_changing)
 
         for key in allowed_keys:  # Проверка наличия нужны ключей
             if key not in note_data:
-                return self.no_keys
+                err_codes.append(self.no_keys)
 
         for key in note_data:  # Проверка на лишние ключи
             if key not in allowed_keys:
-                return self.unknown_keys
+                err_codes.append(self.unknown_keys)
             else:
                 match key:  # Проверка типов содержимого ключей
                     case self._data_struct.tags:
                         if not isinstance(note_data[key], list):
-                            return self.unknown_tags_type
+                            err_codes.append(self.unknown_tags_type)
                     case self._data_struct.date_changing:
                         if not isinstance(note_data[key], str):
-                            return self.unknown_date_type
+                            err_codes.append(self.unknown_date_type)
 
-        return self.correct_note  # Заметка корректна
+        return err_codes  # Заметка корректна
+
+    def _get_note_file_date_changing(self, note: str) -> datetime:
+        """Возвращает дату последнего изменения файла заметки."""
+        path = Path(self._notes, f'{note}.txt')
+        return datetime.datetime.fromtimestamp(path.stat().st_mtime).date().strftime(self._data_struct.datetime_date_format)
 
     def update_state(self):
         pass
@@ -91,21 +97,25 @@ class DataModel:
         """Проверяет файлы на соответствие структуре (notes и DBB)."""
         damaged_notes = []  # Заметки, записи которых в notes_data некорректны (подлежат восстановлению с Model.reclaim_note)
 
-        notes_with_content = []  # Проверка папки notes
-        for file in self._notes.iterdir():
-            if file.is_file() and self._check_compliance(file):
-                notes_with_content.append(file.stem)
+        notes_with_content = []
+        for file in self._notes.iterdir():  # Проверка папки notes на валидность файлов
+            if file.is_file():
+                if self._check_compliance(file):
+                    notes_with_content.append(file.stem)
+                else:
+                    file.unlink()
+                    if file.stem in self.get_notes():
+                        self.delete_note(file.stem)
 
         notes_with_data = []
         with shelve.open(self._notes_data) as notes_data:  # Проверка notes_data
             for note in notes_data:
-                res = self._check_note_data_compliance(notes_data[note])
-                if res == self.correct_note:
+                if self._check_note_data_compliance(notes_data[note]) == []:  # Вернули пустой список
                     notes_with_data.append(note)
                 else:
                     damaged_notes.append(note)
 
-        for note in notes_with_data:  # Удаление заметок без файла
+        for note in [*notes_with_data, *damaged_notes]:  # Удаление заметок без файла
             if note not in notes_with_content:
                 self.delete_note(note)
 
@@ -119,8 +129,30 @@ class DataModel:
         with shelve.open(self._notes_data) as notes_data:
             note_data = notes_data[note]
 
-        if self._check_note_data_compliance(note_data):
-            return
+            err_codes = self._check_note_data_compliance(note_data)
+            allowed_keys = self._data_struct.note_struct.keys()  # Ключи записи в notes_data
+
+            if err_codes:  # Вернули непустой список
+                for code in err_codes:
+                    match code:
+                        case self.unknown_keys:  # Лишние ключи
+                            for key in note_data:
+                                if key not in allowed_keys:
+                                    note_data.pop(key)
+
+                        case self.no_keys:  # Отсутствуют нужные ключи
+                            for key in self._data_struct.note_struct.keys():
+                                if key not in note_data:
+                                    if key == self._data_struct.tags:
+                                        note_data[key] = []  # Создание тега
+                                    elif key == self._data_struct.date_changing:
+                                        note_data[key] = str(self._get_note_file_date_changing(note))  # Создание метки
+                        case self.unknown_tags_type:
+                            note_data[self._data_struct.tags] = []
+                        case self.unknown_date_type:
+                            note_data[self._data_struct.date_changing] = str(self._get_note_file_date_changing(note))
+
+            notes_data[note] = note_data
 
     def get_style(self, style: str) -> str:
         """
@@ -268,5 +300,3 @@ if __name__ == '__main__':
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
-   # model.add_note('note#1', ['tag1'])
-    
