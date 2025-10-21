@@ -79,9 +79,14 @@ class DataModel:
                     case self._data_struct.tags:
                         if not isinstance(note_data[key], list):
                             err_codes.append(self.unknown_tags_type)
+                        else:
+                            for tag in note_data[key]:  # Проверка типов тегов
+                                if not isinstance(tag, str):
+                                    err_codes.append(self.unknown_tags_type)
+
                     case self._data_struct.date_changing:
                         if not isinstance(note_data[key], str):
-                            err_codes.append(self.unknown_date_type)
+                            err_codes.append(self.unknown_date_type)  # ToDo: сделать проверку соответствия формату даты
 
         return err_codes  # Заметка корректна
 
@@ -123,7 +128,8 @@ class DataModel:
             if note not in notes_with_data and note not in damaged_notes:
                 self.add_note(note, [])  # Если новый файл в notes_data - создаётся новая заметка с именем файла и без тегов
 
-        return damaged_notes
+        notes = self.get_notes()
+        return filter(lambda note: note in notes, damaged_notes)  # Отсеивание удалённых заметок
 
     def reclaim_note(self, note: str):
         with shelve.open(self._notes_data) as notes_data:
@@ -136,7 +142,7 @@ class DataModel:
                 for code in err_codes:
                     match code:
                         case self.unknown_keys:  # Лишние ключи
-                            for key in note_data:
+                            for key in list(note_data.keys()):
                                 if key not in allowed_keys:
                                     note_data.pop(key)
 
@@ -148,7 +154,14 @@ class DataModel:
                                     elif key == self._data_struct.date_changing:
                                         note_data[key] = str(self._get_note_file_date_changing(note))  # Создание метки
                         case self.unknown_tags_type:
-                            note_data[self._data_struct.tags] = []
+                            tags = note_data[self._data_struct.tags]
+                            if isinstance(tags, list):  # Восстановление тегов с неверным типом
+                                for i, tag in enumerate(tags):
+                                    if not isinstance(tag, str):
+                                        note_data[self._data_struct.tags].pop(i)
+                            else:
+                                note_data[self._data_struct.tags] = []
+
                         case self.unknown_date_type:
                             note_data[self._data_struct.date_changing] = str(self._get_note_file_date_changing(note))
 

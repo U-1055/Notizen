@@ -68,7 +68,7 @@ def set_test_state_1(notes_data_path: Path, notes_path: Path):
         with shelve.open(notes_data_path, 'w') as note:
             note[name] = invalid_note_structs[idx]
 
-        with open(Path(notes_path, f'{name}.png'), 'w') as note_data:
+        with open(Path(notes_path, f'{name}.txt'), 'w') as note_data:
             note_data.write('')
 
     for name in notes_invalid:  # Создание заметок неверного файла
@@ -84,6 +84,7 @@ def set_test_state_1(notes_data_path: Path, notes_path: Path):
 
 
 def test(model: DataModel,
+         test_base_manager: TestBaseManager,
          notes_must_be_deleted: list[str] = None,
          notes_data_must_be_deleted: list[str] = None,
          notes_must_be_created: list[str] = None,
@@ -169,6 +170,15 @@ def test(model: DataModel,
                                            f'Notes marked as damaged: {damaged_notes} \n'
                                            f'Notes must be marked as damaged: {notes_must_be_damaged}')
 
+    if notes_must_be_reclaimed and check_reclaim:
+
+        for note in notes_must_be_reclaimed:
+            model.reclaim_note(note)
+            note_data = test_base_manager.get_note_data(note)
+
+            assert check_reclaim(note_data), (f'This note must be reclaimed, but it is invalid: {note} \n'
+                                                                          f'Note data: {note_data}')
+
     print(f'Test completed. State: \n Notes: {notes_after} \n Note_files: {notes_data_after}')
 
 
@@ -176,12 +186,11 @@ if __name__ == '__main__':
     def run_test():
         try:
             test(
-                DataModel(notes_path, notes_data_path, resource_path, DataStructConst()),
-                list(notes_without_file),
-                list(notes_invalid),
-                list(notes_without_data),
-                list(notes_damaged)
+                DataModel(notes_path, notes_data_path, resource_path, DataStructConst()), test_base_manager,
+                notes_must_be_reclaimed=notes_damaged,
+                check_reclaim=lambda note_data: False if model._check_note_data_compliance(note_data) else True
             )
+            print([test_base_manager.get_note_data(note) for note in notes_damaged])
         except AssertionError as error:
             print(model.get_notes())
             print([path.stem for path in notes_path.iterdir()])
@@ -193,10 +202,9 @@ if __name__ == '__main__':
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
     clear_base(notes_data_path, notes_path)
+    set_test_state_1(notes_data_path, notes_path)
     test_base_manager = TestBaseManager(notes_path, notes_data_path, DataStructConst())
 
-    test_base_manager.create_file('note#1.txt')
-    test_base_manager.create_note_data('note#1', '111', 14)
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
-    model.reclaim_note('note#1')
-    print(test_base_manager.get_note_data('note#1'))
+
+    run_test()
