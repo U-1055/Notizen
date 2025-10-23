@@ -1,6 +1,7 @@
 from PySide6.QtCore import Signal
 
 from abc import abstractmethod, ABC
+from pathlib import Path
 
 from src.gui.widgets import NoteWindow
 
@@ -58,14 +59,13 @@ class IModel(ABC):
     def get_note_date_changing(self, note: str):
         pass
 
-    @abstractmethod
     def get_notes(self) -> tuple:
         """Возвращает список со всеми заметками"""
         pass
 
+
 class INoteWindow(ABC):
     pass
-
 
 
 if __name__ == '__main__':

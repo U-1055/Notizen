@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QMenu
 from PySide6.QtCore import Signal
 
 import datetime
@@ -67,12 +67,22 @@ class NoteView(QWidget):
         self._content: str = None
         self._date_changing: str = None
         self._tags: list[str] = None
+        self._context_menu: QMenu = None
 
     def setup_wdg_state(self):
         """Устанавливает надписи на виджете."""
         self._view.lbl_name.setText(self._name)
         self._view.txt_content.setText(self._content)
         self._view.lbl_date_changed.setText(self._date_changing)
+
+    def show_menu(self):
+        self._view.btn_ops.showMenu()
+        self._context_menu.exec()
+
+    def setMenu(self, menu: QMenu):
+        self._context_menu = menu
+        self._view.btn_ops.setMenu(self._context_menu)
+        self._view.btn_ops.clicked.connect(self.show_menu)
 
     def mousePressEvent(self, event, /):
         self.pressed.emit(self)
@@ -115,6 +125,18 @@ class NoteView(QWidget):
 
     def add_tag(self, tag: str):
         self._tags.append(tag)
+
+
+class WindowDamagedNotes(QWidget):
+    notes_chosen = Signal(tuple[str, ...])
+    reclaiming_cancelled = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self._notes: tuple[str, ...] = None
+
+    def set_notes(self, notes: tuple[str, ...] | list[str]):
+        self._notes = notes
 
 
 if __name__ == '__main__':

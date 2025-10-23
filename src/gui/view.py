@@ -1,9 +1,12 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget, QMenu, QSizePolicy
+from PySide6.QtGui import QAction
 from PySide6.QtCore import Signal
+
+import typing as tp
 
 from src.interfaces import IView
 from src.gui.ui_view import Ui_Form
-from src.gui.widgets import NoteView, NoteWindow
+from src.gui.widgets import NoteView, NoteWindow, WindowDamagedNotes
 from src.base import GuiLabels
 
 
@@ -68,6 +71,31 @@ class MainWindow(QMainWindow):
 
         return note_window
 
+    def get_menu(self, elements: tuple[tuple[str, tp.Callable], ...]) -> QMenu:
+        """
+        Создаёт меню.
+        :param elements: кортеж элементов вида ((Название пункта, Функция, выполняемая при нажатии на пункт), (...))
+        """
+        menu = QMenu()
+
+        actions = [QAction(el[0], self) for el in elements]
+        [action.triggered.connect(elements[idx][1]) for idx, action in enumerate(actions)]  # Привязка слотов к действиям
+
+        menu.addActions([QAction(el[0], self) for el in elements])  # Добавление действий в меню
+
+        return menu
+
+    def show_message(self, title: str, message: str):
+        """
+        Показывает окно с сообщением.
+        :param title: заголовок.
+        :param message: сообщение.
+        """
+        pass
+
+    def open_damaged_notes_window(self) -> WindowDamagedNotes:
+        return WindowDamagedNotes()
+
     def get_selected_tags(self) -> tuple[str]:
         pass
 
@@ -91,6 +119,7 @@ def setup_gui(root, app):
     pady = (screen_height - root_height) // 2
 
     root.setGeometry(padx, pady, root_width, root_height)
+    root.setMinimumSize(root_width, root_height)
     root.show()
 
     app.exec()

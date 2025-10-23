@@ -313,3 +313,8 @@ if __name__ == '__main__':
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
+    for note in model.get_notes():
+        model.delete_note(note)
+
+    for i in range(10):
+        model.add_note(f'note#{i}', [])

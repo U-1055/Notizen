@@ -3,6 +3,7 @@ import datetime
 from src.gui.view import MainWindow
 from src.gui.widgets import NoteView, NoteWindow
 from src.src.model import DataModel
+from src.base import GuiLabels
 
 from PySide6.QtCore import Signal, QObject
 
@@ -12,32 +13,36 @@ class Logic:
     # Сигналы для тестов
     note_added_to_menu = Signal(NoteView)
 
-    def __init__(self, model, view):
+    def __init__(self, model, view, labels: GuiLabels):
         self._model: DataModel = model
         self._view: MainWindow = view
+        self._labels: GuiLabels = labels
 
         self._notes: list[str] = None
         self._tags: list[str] = None
         self._search_text: str = None
-
         self._notes_struct: dict[str, list[str]] = {}
 
         current_style = self._model.get_last_style()  # Установка стиля
-
         self._view.set_style(self._model.get_style(current_style))
-
-        self._damaged_notes = tuple(filter(lambda f: f != 'note#1', self._model.validate_files()))
 
         self._update_state()
         self._init_menu()
 
-        if self._damaged_notes:
-            pass  # Выводить окно с ошибками
+    def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
+        for note in damaged_notes:
+            if note in self._notes:
+                self._model.reclaim_note(note)
+        self._view.show_message(self._labels.notes_reclaimed, ''.join(damaged_notes))
+        self._update_state()
 
     def _update_state(self):
-        self._notes = tuple(filter(lambda note: note not in self._damaged_notes, self._model.get_notes()))
+        damaged_notes = self._model.validate_files()
+
+        self._notes = list(filter(lambda note: note not in damaged_notes, self._model.get_notes()))
         self._tags = self._view.get_selected_tags()
         self._search_text = self._view.text_search()
+        self._notes_struct: dict[str, list[str]] = {}
 
         notes_tags = self._model.get_tags()
 
@@ -51,6 +56,12 @@ class Logic:
                 for tag in tags:
                     self._notes_struct[tag].append(note)
 
+        if damaged_notes:  # Если есть повреждённые заметки
+            win_damaged_notes = self._view.open_damaged_notes_window()
+            win_damaged_notes.set_notes(damaged_notes)
+            win_damaged_notes.notes_chosen.connect(self._reclaim_damaged_notes)
+            win_damaged_notes.reclaiming_cancelled.connect(lambda: win_damaged_notes.notes_chosen.disconnect(self._reclaim_damaged_notes))
+
     def _init_menu(self):
 
         for note in self._notes:
@@ -60,6 +71,8 @@ class Logic:
             note_view.content = self._model.get_note_content(note)
             note_view.date_changing = self._model.get_note_date_changing(note)
             note_view.tags = self._model.get_note_tags(note)
+
+            note_view.setMenu(self._view.get_menu(((self._labels.delete, lambda: self._delete_note(note)),)))
 
             note_view.pressed.connect(lambda note=note_view: self._open_note(note))
 
@@ -77,6 +90,9 @@ class Logic:
 
     def _close_note(self):
         self._view.open_main_menu()
+
+    def _delete_note(self, note: str):
+        pass
 
 
 class NoteWidgetHandler:
