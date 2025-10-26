@@ -14,10 +14,9 @@ def launch():
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
     app_ = QApplication()
-    root_ = MainWindow()
+    root_ = MainWindow(GuiLabels())
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
     presenter = Logic(model, root_, GuiLabels())
-
     setup_gui(root_, app_)
 
 

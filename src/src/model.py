@@ -98,7 +98,7 @@ class DataModel:
     def update_state(self):
         pass
 
-    def validate_files(self) -> list[str]:
+    def validate_files(self) -> tuple[str, ...]:
         """Проверяет файлы на соответствие структуре (notes и DBB)."""
         damaged_notes = []  # Заметки, записи которых в notes_data некорректны (подлежат восстановлению с Model.reclaim_note)
 
@@ -129,7 +129,7 @@ class DataModel:
                 self.add_note(note, [])  # Если новый файл в notes_data - создаётся новая заметка с именем файла и без тегов
 
         notes = self.get_notes()
-        return filter(lambda note: note in notes, damaged_notes)  # Отсеивание удалённых заметок
+        return tuple(filter(lambda note: note in notes, damaged_notes))  # Отсеивание удалённых заметок
 
     def reclaim_note(self, note: str):
         with shelve.open(self._notes_data) as notes_data:

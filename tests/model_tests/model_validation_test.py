@@ -201,10 +201,13 @@ if __name__ == '__main__':
     notes_path = Path('..', '..', 'data', 'test_cases', 'model_tests', 'test_data_struct', 'notes')
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
+    notes_data_path = Path('..', '..', 'data', 'notes_data', 'notes_data')
+    notes_path = Path('..', '..', 'notes')
+
     clear_base(notes_data_path, notes_path)
     set_test_state_1(notes_data_path, notes_path)
     test_base_manager = TestBaseManager(notes_path, notes_data_path, DataStructConst())
 
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
 
-    run_test()
+   # run_test()

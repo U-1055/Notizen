@@ -104,6 +104,8 @@ class Ui_Form(object):
 
         self.scrollArea = QScrollArea(Form)
         self.scrollArea.setObjectName(u"scrollArea")
+        self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
@@ -120,6 +122,7 @@ class Ui_Form(object):
         self.frm_notes.setObjectName(u"frm_notes")
         self.frm_notes.setSizeConstraint(QLayout.SetMaximumSize)
         self.frm_notes.setContentsMargins(0, 0, 0, 0)
+        self.scrollAreaWidgetContents.setLayout(self.frm_notes)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 
         self.verticalLayout_4.addWidget(self.scrollArea)

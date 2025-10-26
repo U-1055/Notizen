@@ -1,12 +1,12 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget, QMenu, QSizePolicy
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget, QMenu, QSizePolicy, QAbstractItemView
 from PySide6.QtGui import QAction
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 import typing as tp
 
 from src.interfaces import IView
 from src.gui.ui_view import Ui_Form
-from src.gui.widgets import NoteView, NoteWindow, WindowDamagedNotes
+from src.gui.widgets import NoteView, NoteWindow, MessageListWidget, TagWidget
 from src.base import GuiLabels
 
 
@@ -17,7 +17,9 @@ class MainWindow(QMainWindow):
     btn_change_theme_pressed = Signal()
     btn_add_tag_pressed = Signal()
 
-    def __init__(self, labels=None):
+    showed = Signal()
+
+    def __init__(self, labels: GuiLabels):
         super().__init__()
         self._main_widget = QStackedWidget()
         self.setCentralWidget(self._main_widget)
@@ -38,6 +40,11 @@ class MainWindow(QMainWindow):
 
         self._last_row, self._last_column = 0, 0
         self.open_main_menu()
+
+    def _show_damaged_notes_window(self, window: MessageListWidget):
+        window.setWindowModality(Qt.WindowModality.ApplicationModal)
+        window.show()
+        window.raise_()
 
     def open_main_menu(self):
 
@@ -93,14 +100,24 @@ class MainWindow(QMainWindow):
         """
         pass
 
-    def open_damaged_notes_window(self) -> WindowDamagedNotes:
-        return WindowDamagedNotes()
+    def open_damaged_notes_window(self) -> MessageListWidget:
+        window = MessageListWidget()
+        window.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        window.set_title_text(self._labels.damaged_notes_message)
+        window.set_btn_text(self._labels.reclaim)
+
+        self.showed.connect(lambda: self._show_damaged_notes_window(window))
+
+        return window
 
     def get_selected_tags(self) -> tuple[str]:
         pass
 
     def text_search(self) -> str:
         return self._view.line_edit_search.text()
+
+    def showEvent(self, event, /):
+        self.showed.emit()
 
     def _setup_widgets(self):
         pass
@@ -127,5 +144,5 @@ def setup_gui(root, app):
 
 if __name__ == '__main__':
     app_ = QApplication()
-    root_ = MainWindow(GuiLabels)
+    root_ = MainWindow(GuiLabels())
     setup_gui(root_, app_)

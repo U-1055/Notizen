@@ -31,8 +31,7 @@ class Logic:
 
     def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
         for note in damaged_notes:
-            if note in self._notes:
-                self._model.reclaim_note(note)
+            self._model.reclaim_note(note)
         self._view.show_message(self._labels.notes_reclaimed, ''.join(damaged_notes))
         self._update_state()
 
@@ -58,9 +57,8 @@ class Logic:
 
         if damaged_notes:  # Если есть повреждённые заметки
             win_damaged_notes = self._view.open_damaged_notes_window()
-            win_damaged_notes.set_notes(damaged_notes)
-            win_damaged_notes.notes_chosen.connect(self._reclaim_damaged_notes)
-            win_damaged_notes.reclaiming_cancelled.connect(lambda: win_damaged_notes.notes_chosen.disconnect(self._reclaim_damaged_notes))
+            win_damaged_notes.set_elements(damaged_notes)
+            win_damaged_notes.elements_chosen.connect(self._reclaim_damaged_notes)
 
     def _init_menu(self):
 

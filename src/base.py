@@ -23,6 +23,8 @@ class GuiLabels:
     view_tags = 'Теги...'
     set_theme_dark = 'Темная'
     set_theme_light = 'Светлая'
+    damaged_notes_message = 'Обнаружены повреждённые заметки. Восстановить выбранные?'
+    reclaim = 'Восстановить'
     notes_reclaimed = 'Заметки восстановлены'
     unknown_error = 'Что-то пошло не так...'
     delete = 'Удалить'
