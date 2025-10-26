@@ -15,43 +15,81 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,6">
+    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="1,11">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,2,5,1">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,2,10,0,1">
        <property name="sizeConstraint">
         <enum>QLayout::SetMaximumSize</enum>
        </property>
        <item>
-        <widget class="QPushButton" name="btn_return">
+        <widget class="QToolButton" name="btn_return">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
-          <string>PushButton</string>
+          <string>&lt;-</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QWidget" name="widget" native="true"/>
+        <widget class="QWidget" name="wdg_tags_container" native="true"/>
        </item>
-       <item>
-        <widget class="QLineEdit" name="lineEdit">
+       <item alignment="Qt::AlignRight">
+        <widget class="QLineEdit" name="line_edit_name">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="maximumSize">
           <size>
            <width>133</width>
            <height>16777215</height>
           </size>
          </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="maxLength">
+          <number>32767</number>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+         </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QToolButton" name="btn_save">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
-          <string>PushButton</string>
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+       <item alignment="Qt::AlignRight">
+        <widget class="QPushButton" name="btn_info">
+         <property name="text">
+          <string>...</string>
          </property>
         </widget>
        </item>
       </layout>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_5"/>
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <widget class="QTextEdit" name="wdg_text"/>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>

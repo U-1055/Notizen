@@ -14,7 +14,8 @@ class MainWindow(QMainWindow):
 
     btn_create_note_pressed = Signal()
     btn_tags_pressed = Signal()
-    btn_change_theme_pressed = Signal()
+    btn_dark_theme_pressed = Signal()
+    btn_light_theme_pressed = Signal()
     btn_add_tag_pressed = Signal()
 
     showed = Signal()
@@ -28,15 +29,8 @@ class MainWindow(QMainWindow):
         self._view = Ui_Form()
         self._view.setupUi(container)
         self._main_widget.insertWidget(0, container)
-        self._main_widget.setCurrentIndex(0)
 
         self._labels = labels
-
-        if self._labels:
-            self._view.btn_theme_dark_2.setText(self._labels.set_theme_dark)
-            self._view.btn_theme_light_2.setText(self._labels.set_theme_light)
-            self._view.btn_create_note_2.setText(self._labels.create_note)
-            self._view.btn_tags_2.setText(self._labels.view_tags)
 
         self._last_row, self._last_column = 0, 0
         self.open_main_menu()
@@ -45,19 +39,26 @@ class MainWindow(QMainWindow):
         window.setWindowModality(Qt.WindowModality.ApplicationModal)
         window.show()
         window.raise_()
+        window.selectAll()
 
     def open_main_menu(self):
-
         self._main_widget.setCurrentIndex(0)
 
         if self._labels:
-            self._view.btn_theme_dark_2.setText(self._labels.set_theme_dark)
-            self._view.btn_theme_light_2.setText(self._labels.set_theme_light)
+            self._view.btn_dark_theme.setText(self._labels.set_theme_dark)
+            self._view.btn_light_theme.setText(self._labels.set_theme_light)
             self._view.btn_create_note_2.setText(self._labels.create_note)
             self._view.btn_tags_2.setText(self._labels.view_tags)
+            self._view.btn_search.setText(self._labels.search)
+            self._view.btn_update.setText(self._labels.update)
 
     def set_style(self, style: str):
         self.setStyleSheet(style)
+
+    def clear_notes(self):
+        for idx in range(self._view.frm_notes.count()):
+            self._view.frm_notes.itemAt(idx).widget().hide()
+        self._last_row = self._last_column = 0
 
     def add_note(self):
         note_widget = NoteView()

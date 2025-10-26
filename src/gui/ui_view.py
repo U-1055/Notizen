@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QGridLayout, QHBoxLayout, QLayout,
-    QLineEdit, QPushButton, QScrollArea, QSizePolicy,
-    QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
+    QLayout, QLineEdit, QPushButton, QScrollArea,
+    QSizePolicy, QVBoxLayout, QWidget)
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -60,10 +60,22 @@ class Ui_Form(object):
 
         self.horizontalLayout_2.addWidget(self.line_edit_search)
 
-        self.pushButton = QPushButton(Form)
-        self.pushButton.setObjectName(u"pushButton")
+        self.btn_search = QPushButton(Form)
+        self.btn_search.setObjectName(u"btn_search")
 
-        self.horizontalLayout_2.addWidget(self.pushButton)
+        self.horizontalLayout_2.addWidget(self.btn_search)
+
+        self.line = QFrame(Form)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.VLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_2.addWidget(self.line)
+
+        self.btn_update = QPushButton(Form)
+        self.btn_update.setObjectName(u"btn_update")
+
+        self.horizontalLayout_2.addWidget(self.btn_update)
 
         self.horizontalLayout_2.setStretch(0, 10)
         self.horizontalLayout_2.setStretch(1, 1)
@@ -80,25 +92,28 @@ class Ui_Form(object):
 
         self.horizontalLayout.addLayout(self.verticalLayout_2)
 
-        self.verticalLayout = QVBoxLayout()
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setSizeConstraint(QLayout.SetMinimumSize)
-        self.btn_theme_dark_2 = QPushButton(Form)
-        self.btn_theme_dark_2.setObjectName(u"btn_theme_dark_2")
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.verticalLayout_5 = QVBoxLayout()
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.btn_dark_theme = QPushButton(Form)
+        self.btn_dark_theme.setObjectName(u"btn_dark_theme")
 
-        self.verticalLayout.addWidget(self.btn_theme_dark_2, 0, Qt.AlignRight)
+        self.verticalLayout_5.addWidget(self.btn_dark_theme)
 
-        self.btn_theme_light_2 = QPushButton(Form)
-        self.btn_theme_light_2.setObjectName(u"btn_theme_light_2")
+        self.btn_light_theme = QPushButton(Form)
+        self.btn_light_theme.setObjectName(u"btn_light_theme")
 
-        self.verticalLayout.addWidget(self.btn_theme_light_2, 0, Qt.AlignRight)
+        self.verticalLayout_5.addWidget(self.btn_light_theme)
 
 
-        self.horizontalLayout.addLayout(self.verticalLayout)
+        self.horizontalLayout_3.addLayout(self.verticalLayout_5)
+
+
+        self.horizontalLayout.addLayout(self.horizontalLayout_3)
 
         self.horizontalLayout.setStretch(0, 1)
         self.horizontalLayout.setStretch(1, 2)
-        self.horizontalLayout.setStretch(2, 1)
 
         self.verticalLayout_4.addLayout(self.horizontalLayout)
 
@@ -107,23 +122,24 @@ class Ui_Form(object):
         self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scrollArea.setWidgetResizable(True)
-        self.scrollAreaWidgetContents = QWidget()
-        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 16, 16))
+        self.scrollAreaContent = QWidget()
+        self.scrollAreaContent.setObjectName(u"scrollAreaContent")
+        self.scrollAreaContent.setEnabled(True)
+        self.scrollAreaContent.setGeometry(QRect(0, 0, 16, 16))
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.scrollAreaWidgetContents.sizePolicy().hasHeightForWidth())
-        self.scrollAreaWidgetContents.setSizePolicy(sizePolicy1)
-        self.gridLayoutWidget = QWidget(self.scrollAreaWidgetContents)
+        sizePolicy1.setHeightForWidth(self.scrollAreaContent.sizePolicy().hasHeightForWidth())
+        self.scrollAreaContent.setSizePolicy(sizePolicy1)
+        self.gridLayoutWidget = QWidget(self.scrollAreaContent)
         self.gridLayoutWidget.setObjectName(u"gridLayoutWidget")
         self.gridLayoutWidget.setGeometry(QRect(0, 0, 1001, 501))
         self.frm_notes = QGridLayout(self.gridLayoutWidget)
         self.frm_notes.setObjectName(u"frm_notes")
         self.frm_notes.setSizeConstraint(QLayout.SetMaximumSize)
         self.frm_notes.setContentsMargins(0, 0, 0, 0)
-        self.scrollAreaWidgetContents.setLayout(self.frm_notes)
-        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+        self.scrollArea.setWidget(self.scrollAreaContent)
+        self.scrollAreaContent.setLayout(self.frm_notes)
 
         self.verticalLayout_4.addWidget(self.scrollArea)
 
@@ -139,8 +155,9 @@ class Ui_Form(object):
         Form.setWindowTitle(QCoreApplication.translate("Form", u"Form", None))
         self.btn_create_note_2.setText(QCoreApplication.translate("Form", u"+ \u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0437\u0430\u043c\u0435\u0442\u043a\u0443", None))
         self.btn_tags_2.setText(QCoreApplication.translate("Form", u"\u0422\u0435\u0433\u0438 ...", None))
-        self.pushButton.setText(QCoreApplication.translate("Form", u"PushButton", None))
-        self.btn_theme_dark_2.setText(QCoreApplication.translate("Form", u"\u0422\u0451\u043c\u043d\u0430\u044f", None))
-        self.btn_theme_light_2.setText(QCoreApplication.translate("Form", u"\u0421\u0432\u0435\u0442\u043b\u0430\u044f", None))
+        self.btn_search.setText(QCoreApplication.translate("Form", u"PushButton", None))
+        self.btn_update.setText(QCoreApplication.translate("Form", u"PushButton", None))
+        self.btn_dark_theme.setText(QCoreApplication.translate("Form", u"PushButton", None))
+        self.btn_light_theme.setText(QCoreApplication.translate("Form", u"PushButton", None))
     # retranslateUi
 

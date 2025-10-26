@@ -27,7 +27,6 @@ class Logic:
         self._view.set_style(self._model.get_style(current_style))
 
         self._update_state()
-        self._init_menu()
 
     def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
         for note in damaged_notes:
@@ -59,10 +58,13 @@ class Logic:
             win_damaged_notes = self._view.open_damaged_notes_window()
             win_damaged_notes.set_elements(damaged_notes)
             win_damaged_notes.elements_chosen.connect(self._reclaim_damaged_notes)
+        self._init_menu(self._notes)
 
-    def _init_menu(self):
+    def _init_menu(self, notes: tuple[str, ...] | list[str]):
+        self._view.clear_notes()
 
-        for note in self._notes:
+        for note in notes:
+
             note_view = self._view.add_note()
 
             note_view.name = note
@@ -104,11 +106,36 @@ class NoteWidgetHandler:
 
 class NoteWindowHandler(QObject):
     closed = Signal()  # Handler сам обрабатывает сигналы от NoteWindow
+    note_changed = Signal()  # Состояние заметки изменено
 
     def __init__(self, note_window: NoteWindow):
         super().__init__()
+        self._is_changed = False
+
         self._note_window = note_window
         self._note_window.closed.connect(self.closed.emit)
+        self._note_window.name_changed.connect(self._on_name_changed)
+
+        self._note_window.name_changed.connect(self._to_changed)
+        self._note_window.tags_changed.connect(self._to_changed)
+        self._note_window.text_changed.connect(self._to_changed)
+
+        self._note_window.name_changed.connect(self._on_name_changed)
+        self._note_window.tags_changed.connect(self._on_tags_changed)
+        self._note_window.text_changed.connect(self._on_text_changed)
+
+    def _to_changed(self):
+        self._is_changed = True
+        self.note_changed.emit()  # ToDo:  решить, нужны ли дополнительные свойства (внутреннее состояние, которое будет дублировать )
+
+    def _on_name_changed(self, name: str):
+        pass
+
+    def _on_text_changed(self, text: str):
+        pass
+
+    def _on_tags_changed(self, tags: tuple[str, ...]):
+        pass
 
     def _close_window(self):
         self.closed.emit()

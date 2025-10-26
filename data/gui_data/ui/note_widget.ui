@@ -51,7 +51,7 @@
      <item row="0" column="1" alignment="Qt::AlignRight|Qt::AlignTop">
       <widget class="QPushButton" name="btn_ops">
        <property name="text">
-        <string>...</string>
+        <string/>
        </property>
       </widget>
      </item>

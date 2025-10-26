@@ -25,6 +25,8 @@ class GuiLabels:
     set_theme_light = 'Светлая'
     damaged_notes_message = 'Обнаружены повреждённые заметки. Восстановить выбранные?'
     reclaim = 'Восстановить'
+    search = 'Найти'
+    update = 'Обновить'
     notes_reclaimed = 'Заметки восстановлены'
     unknown_error = 'Что-то пошло не так...'
     delete = 'Удалить'

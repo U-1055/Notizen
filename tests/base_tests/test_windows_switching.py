@@ -6,7 +6,7 @@ import random
 import json
 import datetime
 
-from src.src.logic import Logic
+from src.src.logic import Logic, NoteWindowHandler
 from tests.test_configs.model_test_config import TestDataModel
 from src.interfaces import IModel, IView
 from src.base import DataStructConst
@@ -16,10 +16,9 @@ class TestNoteWindow(QObject):
     pressed = Signal()
     closed = Signal()
 
-    changed_date_changing = Signal(str)
-    changed_content = Signal(str)
-    changed_tags = Signal(list)
-    changed_name = Signal(str)
+    text_changed = Signal(str)
+    tags_changed = Signal(list)
+    name_changed = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -32,7 +31,6 @@ class TestNoteWindow(QObject):
     @name.setter
     def name(self, name: str):
         self._name = name
-        self.changed_name.emit(self._name)
 
     @property
     def content(self) -> str:
@@ -41,7 +39,6 @@ class TestNoteWindow(QObject):
     @content.setter
     def content(self, content: str):
         self._content = content
-        self.changed_content.emit(self._content)
 
     @property
     def date_changing(self) -> str:
@@ -50,7 +47,6 @@ class TestNoteWindow(QObject):
     @date_changing.setter
     def date_changing(self, date_changing: str | datetime.datetime):
         self._date_changing = str(date_changing)
-        self.changed_date_changing.emit(self._date_changing)
 
     @property
     def tags(self) -> list[str]:
@@ -59,7 +55,6 @@ class TestNoteWindow(QObject):
     @tags.setter
     def tags(self, tags: list[str, ...]):
         self._tags = tags
-        self.changed_tags.emit(self._tags)
 
 
 class TestNoteView(QObject):
@@ -171,6 +166,28 @@ def test_window(window: TestNoteWindow, tags: list[str], date_changing: str, con
     window.changed_date_changing.connect(check_date_changing)
 
 
+class NoteWindowHandlerTest:
+    """Тесты обработчика окна."""
+
+    def __init__(self):
+        pass
+
+def test_handler(handler: NoteWindowHandler, window: TestNoteWindow):
+    """Тестирует обработчик окна."""
+    def change_called_state():
+        nonlocal called
+        called = True
+
+    called = False  # Пример теста обработчика
+    handler.note_changed.connect(change_called_state)
+
+    window.tags_changed.emit([])
+    assert called
+    print('Test completed')
+
+
 if __name__ == '__main__':
     test_case_path = Path(r'C:\Users\filat\PycharmProjects\Notizen\data\test_cases\base_tests\notes_data.json')
-    test(Logic)
+    window = TestNoteWindow()
+    handler = NoteWindowHandler(window)
+    test_handler(handler, window)

@@ -13,12 +13,19 @@ from src.gui.ui_elements_window import Ui_Form as UiElementsWindow
 
 class NoteWindow(QWidget):
     closed = Signal()  # Сигнал закрытия окна
+    name_changed = Signal(str)  # Название изменено, возвращает название
+    text_changed = Signal()  # Текст изменён, возвращает число изменённых символов
+    tags_changed = Signal(tuple)  # Теги изменены, возвращает теги
+    btn_save_pressed = Signal()  # Нажата кнопка сохранения
 
     def __init__(self):
         super().__init__()
         self._view = UiNoteWindow()
         self._view.setupUi(self)
         self._view.btn_return.clicked.connect(self.closed.emit)
+        self._view.line_edit_name.textChanged.connect(lambda: self.name_changed.emit(self.name))
+        self._view.wdg_text.textChanged.connect(self.text_changed.emit)
+        #  Сигнал изменения тегов
 
         self._name = self._content = self._date_changing = self._tags = None
 
@@ -27,19 +34,19 @@ class NoteWindow(QWidget):
 
     @property
     def name(self) -> str:
-        return self._name
+        return self._view.line_edit_name.text()
 
     @name.setter
     def name(self, name: str):
-        self._name = name
+        self._view.line_edit_name.setText(name)
 
     @property
     def content(self) -> str:
-        return self._content[0::]
+        return self._view.wdg_text.toPlainText()
 
     @content.setter
     def content(self, content: str):
-        self._content = content
+        self._view.wdg_text.setText(content)
 
     @property
     def date_changing(self) -> str:
@@ -168,6 +175,8 @@ class MessageListWidget(QWidget):
     def set_title_text(self, text: str):
         self._view.lbl_title.setText(text)
 
+    def selectAll(self):
+        self._view.wdg_items.selectAll()
 
 class WindowDamagedNotes(QWidget):
     notes_chosen = Signal(tuple[str, ...])
