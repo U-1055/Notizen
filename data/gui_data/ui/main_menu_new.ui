@@ -19,11 +19,11 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,6">
+  <layout class="QVBoxLayout" name="verticalLayout_4" stretch="1,0,6">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
      <property name="sizeConstraint">
-      <enum>QLayout::SetMinimumSize</enum>
+      <enum>QLayout::SetMaximumSize</enum>
      </property>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -47,12 +47,15 @@
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="2,1">
+      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="2,0">
        <property name="sizeConstraint">
-        <enum>QLayout::SetMinimumSize</enum>
+        <enum>QLayout::SetMaximumSize</enum>
        </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="10,1,0,0">
+         <property name="sizeConstraint">
+          <enum>QLayout::SetDefaultConstraint</enum>
+         </property>
          <item>
           <widget class="QLineEdit" name="line_edit_search"/>
          </item>
@@ -80,7 +83,20 @@
         </layout>
        </item>
        <item>
-        <widget class="QWidget" name="tag_widget_container" native="true"/>
+        <widget class="TagWidget" name="wdg_tags" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+           <horstretch>10</horstretch>
+           <verstretch>10</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -107,6 +123,13 @@
       </layout>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="Line" name="line_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
    </item>
    <item>
     <widget class="QScrollArea" name="scrollArea">
@@ -150,6 +173,9 @@
         <property name="sizeConstraint">
          <enum>QLayout::SetMaximumSize</enum>
         </property>
+        <property name="verticalSpacing">
+         <number>10</number>
+        </property>
        </layout>
       </widget>
      </widget>
@@ -157,6 +183,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TagWidget</class>
+   <extends>QWidget</extends>
+   <header>src/gui/tags_widget</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

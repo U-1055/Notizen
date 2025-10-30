@@ -28,6 +28,10 @@ class Logic:
 
         self._update_state()
 
+        tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags()))
+        self._tag_widget = self._view.get_tag_widget()
+        self._tag_widget.set_tag_menu(tag_menu)
+
     def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
         for note in damaged_notes:
             self._model.reclaim_note(note)
@@ -79,7 +83,7 @@ class Logic:
     def _open_note(self, note_view: NoteView):
         """Обрабатывает открытие заметки."""
         note_window = self._view.open_note_window()
-        self.note_handler = NoteWindowHandler(note_window)
+        self.note_handler = NoteWindowHandler(note_window, self._model)
 
         note_window.tags = note_view.tags
         note_window.name = note_view.name
@@ -106,9 +110,8 @@ class NoteWidgetHandler:
 
 class NoteWindowHandler(QObject):
     closed = Signal()  # Handler сам обрабатывает сигналы от NoteWindow
-    note_changed = Signal()  # Состояние заметки изменено
 
-    def __init__(self, note_window: NoteWindow):
+    def __init__(self, note_window: NoteWindow, model: DataModel):
         super().__init__()
         self._is_changed = False
 
@@ -126,7 +129,6 @@ class NoteWindowHandler(QObject):
 
     def _to_changed(self):
         self._is_changed = True
-        self.note_changed.emit()  # ToDo:  решить, нужны ли дополнительные свойства (внутреннее состояние, которое будет дублировать )
 
     def _on_name_changed(self, name: str):
         pass

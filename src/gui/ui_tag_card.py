@@ -23,6 +23,12 @@ class Ui_Form(object):
         if not Form.objectName():
             Form.setObjectName(u"Form")
         Form.resize(400, 300)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Form.sizePolicy().hasHeightForWidth())
+        Form.setSizePolicy(sizePolicy)
+        Form.setMaximumSize(QSize(16777215, 300))
         self.verticalLayoutWidget = QWidget(Form)
         self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
         self.verticalLayoutWidget.setGeometry(QRect(110, 50, 121, 24))
@@ -31,21 +37,20 @@ class Ui_Form(object):
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.lbl_tag_card = QLabel(self.verticalLayoutWidget)
         self.lbl_tag_card.setObjectName(u"lbl_tag_card")
+        sizePolicy.setHeightForWidth(self.lbl_tag_card.sizePolicy().hasHeightForWidth())
+        self.lbl_tag_card.setSizePolicy(sizePolicy)
 
         self.horizontalLayout.addWidget(self.lbl_tag_card)
 
         self.btn_tag_card = QToolButton(self.verticalLayoutWidget)
         self.btn_tag_card.setObjectName(u"btn_tag_card")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.btn_tag_card.sizePolicy().hasHeightForWidth())
         self.btn_tag_card.setSizePolicy(sizePolicy)
 
         self.horizontalLayout.addWidget(self.btn_tag_card)
 
         self.horizontalLayout.setStretch(0, 10)
-        self.horizontalLayout.setStretch(1, 2)
+        self.horizontalLayout.setStretch(1, 1)
 
         self.retranslateUi(Form)
 

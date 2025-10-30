@@ -34,8 +34,15 @@
          </property>
         </widget>
        </item>
-       <item>
-        <widget class="QWidget" name="wdg_tags_container" native="true"/>
+       <item alignment="Qt::AlignLeft|Qt::AlignTop">
+        <widget class="TagWidget" name="wdg_tags" native="true">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
        </item>
        <item alignment="Qt::AlignRight">
         <widget class="QLineEdit" name="line_edit_name">
@@ -95,6 +102,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TagWidget</class>
+   <extends>QWidget</extends>
+   <header>src/gui/tags_widget</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

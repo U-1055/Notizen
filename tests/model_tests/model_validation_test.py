@@ -210,4 +210,4 @@ if __name__ == '__main__':
 
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
 
-   # run_test()
+    run_test()

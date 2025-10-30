@@ -56,7 +56,7 @@ class Ui_Form(object):
         self.lbl_date_changed = QLabel(Form)
         self.lbl_date_changed.setObjectName(u"lbl_date_changed")
 
-        self.main_layout.addWidget(self.lbl_date_changed, 2, 1, 1, 1)
+        self.main_layout.addWidget(self.lbl_date_changed, 2, 1, 1, 1, Qt.AlignTop)
 
         self.frm_tags = QWidget(Form)
         self.frm_tags.setObjectName(u"frm_tags")

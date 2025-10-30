@@ -6,7 +6,8 @@ import typing as tp
 
 from src.interfaces import IView
 from src.gui.ui_view import Ui_Form
-from src.gui.widgets import NoteView, NoteWindow, MessageListWidget, TagWidget
+from src.gui.widgets import NoteView, NoteWindow, MessageListWidget
+from src.gui.tags_widget import TagWidget
 from src.base import GuiLabels
 
 
@@ -92,6 +93,13 @@ class MainWindow(QMainWindow):
         menu.addActions([QAction(el[0], self) for el in elements])  # Добавление действий в меню
 
         return menu
+
+    def get_tag_widget(self) -> TagWidget:
+        """Возвращает виджет тегов."""
+        tw = TagWidget()
+        self._view.verticalLayout_2.addWidget(tw)
+
+        return tw
 
     def show_message(self, title: str, message: str):
         """

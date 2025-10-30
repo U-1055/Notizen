@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLayout, QLineEdit,
     QPushButton, QSizePolicy, QTextEdit, QToolButton,
     QVBoxLayout, QWidget)
 
+from src.gui.tags_widget import TagWidget
+
 class Ui_Form(object):
     def setupUi(self, Form):
         if not Form.objectName():
@@ -41,10 +43,11 @@ class Ui_Form(object):
 
         self.horizontalLayout.addWidget(self.btn_return)
 
-        self.wdg_tags_container = QWidget(Form)
-        self.wdg_tags_container.setObjectName(u"wdg_tags_container")
+        self.wdg_tags = TagWidget()
+        self.wdg_tags.setObjectName(u"wdg_tags")
+        self.wdg_tags.setMaximumSize(QSize(16777215, 0))
 
-        self.horizontalLayout.addWidget(self.wdg_tags_container)
+        self.horizontalLayout.addWidget(self.wdg_tags, 0, Qt.AlignTop)
 
         self.line_edit_name = QLineEdit(Form)
         self.line_edit_name.setObjectName(u"line_edit_name")
@@ -87,7 +90,6 @@ class Ui_Form(object):
         self.wdg_text.setObjectName(u"wdg_text")
 
         self.horizontalLayout_5.addWidget(self.wdg_text)
-
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
 

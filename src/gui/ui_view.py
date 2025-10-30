@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QHBoxLayout,
     QLayout, QLineEdit, QPushButton, QScrollArea,
     QSizePolicy, QVBoxLayout, QWidget)
 
+from src.gui.tags_widget import TagWidget
+
 class Ui_Form(object):
     def setupUi(self, Form):
         if not Form.objectName():
@@ -33,7 +35,7 @@ class Ui_Form(object):
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setSizeConstraint(QLayout.SetMinimumSize)
+        self.horizontalLayout.setSizeConstraint(QLayout.SetMaximumSize)
         self.verticalLayout_3 = QVBoxLayout()
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.verticalLayout_3.setSizeConstraint(QLayout.SetMinimumSize)
@@ -52,7 +54,7 @@ class Ui_Form(object):
 
         self.verticalLayout_2 = QVBoxLayout()
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.verticalLayout_2.setSizeConstraint(QLayout.SetMinimumSize)
+        self.verticalLayout_2.setSizeConstraint(QLayout.SetMaximumSize)
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.line_edit_search = QLineEdit(Form)
@@ -82,10 +84,16 @@ class Ui_Form(object):
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
 
-        self.tag_widget_container = QWidget(Form)
-        self.tag_widget_container.setObjectName(u"tag_widget_container")
+        self.wdg_tags = TagWidget()
+        self.wdg_tags.setObjectName(u"wdg_tags")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
+        sizePolicy1.setHorizontalStretch(10)
+        sizePolicy1.setVerticalStretch(10)
+        sizePolicy1.setHeightForWidth(self.wdg_tags.sizePolicy().hasHeightForWidth())
+        self.wdg_tags.setSizePolicy(sizePolicy1)
+        self.wdg_tags.setMaximumSize(QSize(16777215, 0))
 
-        self.verticalLayout_2.addWidget(self.tag_widget_container)
+        self.verticalLayout_2.addWidget(self.wdg_tags, 0, Qt.AlignHCenter|Qt.AlignTop)
 
         self.verticalLayout_2.setStretch(0, 2)
         self.verticalLayout_2.setStretch(1, 1)
@@ -112,10 +120,15 @@ class Ui_Form(object):
 
         self.horizontalLayout.addLayout(self.horizontalLayout_3)
 
-        self.horizontalLayout.setStretch(0, 1)
-        self.horizontalLayout.setStretch(1, 2)
 
         self.verticalLayout_4.addLayout(self.horizontalLayout)
+
+        self.line_2 = QFrame(Form)
+        self.line_2.setObjectName(u"line_2")
+        self.line_2.setFrameShape(QFrame.Shape.HLine)
+        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.verticalLayout_4.addWidget(self.line_2)
 
         self.scrollArea = QScrollArea(Form)
         self.scrollArea.setObjectName(u"scrollArea")
@@ -126,17 +139,18 @@ class Ui_Form(object):
         self.scrollAreaContent.setObjectName(u"scrollAreaContent")
         self.scrollAreaContent.setEnabled(True)
         self.scrollAreaContent.setGeometry(QRect(0, 0, 16, 16))
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.scrollAreaContent.sizePolicy().hasHeightForWidth())
-        self.scrollAreaContent.setSizePolicy(sizePolicy1)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.scrollAreaContent.sizePolicy().hasHeightForWidth())
+        self.scrollAreaContent.setSizePolicy(sizePolicy2)
         self.gridLayoutWidget = QWidget(self.scrollAreaContent)
         self.gridLayoutWidget.setObjectName(u"gridLayoutWidget")
         self.gridLayoutWidget.setGeometry(QRect(0, 0, 1001, 501))
         self.frm_notes = QGridLayout(self.gridLayoutWidget)
         self.frm_notes.setObjectName(u"frm_notes")
         self.frm_notes.setSizeConstraint(QLayout.SetMaximumSize)
+        self.frm_notes.setVerticalSpacing(10)
         self.frm_notes.setContentsMargins(0, 0, 0, 0)
         self.scrollArea.setWidget(self.scrollAreaContent)
         self.scrollAreaContent.setLayout(self.frm_notes)
@@ -144,7 +158,7 @@ class Ui_Form(object):
         self.verticalLayout_4.addWidget(self.scrollArea)
 
         self.verticalLayout_4.setStretch(0, 1)
-        self.verticalLayout_4.setStretch(1, 6)
+        self.verticalLayout_4.setStretch(2, 6)
 
         self.retranslateUi(Form)
 
