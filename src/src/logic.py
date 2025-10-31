@@ -27,7 +27,6 @@ class Logic:
         self._view.set_style(self._model.get_style(current_style))
 
         self._update_state()
-
         tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags()))
         self._tag_widget = self._view.get_tag_widget()
         self._tag_widget.set_tag_menu(tag_menu)

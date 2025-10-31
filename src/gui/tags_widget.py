@@ -55,6 +55,12 @@ class TagWidget(QWidget):
     def tags(self) -> tuple:
         return tuple(self._tags)
 
+    def set_tags(self, tags: list[str] | tuple[str, ...]):
+        correct_tags = {action.text(): action for action in self._tag_menu.actions()}
+        for tag in set(tags):
+            if tag in correct_tags:
+                self._add_tag(correct_tags[tag])
+
     def set_tag_menu(self, menu: QMenu):
         """Устанавливает меню для выбора тегов. (Меню должно содержать действия, соответствующие названиям тегов)."""
 
@@ -104,11 +110,13 @@ if __name__ == '__main__':
 
     root = QMainWindow()
     menu = QMenu()
-    actions = [QAction('tag#1', root), QAction('tag#2', root)]
+    actions = [QAction('tag#1', root), QAction('tag#2', root), QAction('tag#3', root), QAction('tag#4', root),
+               QAction('tag#4.5', root), QAction('tag#5', root), QAction('tag#6', root), QAction('tag#7', root)]
     menu.addActions(actions)
 
     mlw = TagWidget()
     mlw.set_tag_menu(menu)
+    mlw.set_tags(['tag#15'])
 
     mlw.show()
 

@@ -45,7 +45,7 @@ class TagWidgetTest:
         assert set(current_tags) == set(tags_after), f'\nTags before: {tags_before}\nTags after: {tags_after}\nCurrent tags: {current_tags}'
 
 
-def test_1():
+def test():
     app = QApplication()
 
     root = QMainWindow()
@@ -58,7 +58,6 @@ def test_1():
     test.test_delete_tags([f'tag#{i}' for i in range(20)])
 
     app.exec()
-
 
 
 if __name__ == '__main__':

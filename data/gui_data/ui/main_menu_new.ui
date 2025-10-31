@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+   <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -47,9 +47,9 @@
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="2,0">
+      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="2,1">
        <property name="sizeConstraint">
-        <enum>QLayout::SetMaximumSize</enum>
+        <enum>QLayout::SetDefaultConstraint</enum>
        </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="10,1,0,0">
@@ -82,18 +82,24 @@
          </item>
         </layout>
        </item>
-       <item>
+       <item alignment="Qt::AlignVCenter">
         <widget class="TagWidget" name="wdg_tags" native="true">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
-           <horstretch>10</horstretch>
-           <verstretch>10</verstretch>
+          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>440</width>
+           <height>75</height>
+          </size>
          </property>
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>0</height>
+           <height>3547</height>
           </size>
          </property>
         </widget>

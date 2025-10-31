@@ -175,6 +175,7 @@ class MessageListWidget(QWidget):
     def selectAll(self):
         self._view.wdg_items.selectAll()
 
+
 class WindowDamagedNotes(QWidget):
     notes_chosen = Signal(tuple[str, ...])
     reclaiming_cancelled = Signal()

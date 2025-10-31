@@ -96,10 +96,7 @@ class MainWindow(QMainWindow):
 
     def get_tag_widget(self) -> TagWidget:
         """Возвращает виджет тегов."""
-        tw = TagWidget()
-        self._view.verticalLayout_2.addWidget(tw)
-
-        return tw
+        return self._view.wdg_tags
 
     def show_message(self, title: str, message: str):
         """
