@@ -1,3 +1,5 @@
+import json
+
 from PySide6.QtCore import QFile
 
 import datetime
@@ -24,8 +26,9 @@ class DataModel:
 
     err_codes = (unknown_tags_type, unknown_date_type, unknown_keys, no_keys)
 
-    def __init__(self, notes: Path, notes_data: Path, resources: Path, data_struct: DataStructConst):
-        self._notes, self._notes_data, self._resources, self._data_struct = notes, notes_data, resources, data_struct
+    def __init__(self, notes: Path, notes_data: Path, common_data_path: Path, resources: Path, data_struct: DataStructConst):
+        self._notes, self._notes_data, self._resources, self._data_struct, self._common_data_path =\
+            notes, notes_data, resources, data_struct, common_data_path
 
     @property
     def notes(self) -> Path:
@@ -121,6 +124,16 @@ class DataModel:
                 else:
                     damaged_notes.append(note)
 
+        try:
+            with open(self._common_data_path, 'rb') as common_data_file:  # Проверка  common_data
+                common_data = json.load(common_data_file)
+            common_data = self.reclaim_common_data(common_data)
+            with open(self._common_data_path, 'w') as common_data_file:
+                json.dump(common_data, common_data_file)
+        except json.decoder.JSONDecodeError:
+            with open(self._common_data_path, 'w') as common_data_file:
+                json.dump({self._data_struct.tags: self.get_notes_tags()}, common_data_file)
+
         for note in [*notes_with_data, *damaged_notes]:  # Удаление заметок без файла
             if note not in notes_with_content:
                 self.delete_note(note)
@@ -131,6 +144,20 @@ class DataModel:
 
         notes = self.get_notes()
         return tuple(filter(lambda note: note in notes, damaged_notes))  # Отсеивание удалённых заметок
+
+    def reclaim_common_data(self, common_data: dict) -> dict:
+        """Восстанавливает common_data при наличии повреждений."""
+        tags = self.get_notes_tags()
+        if self._data_struct.tags not in common_data:  # Нет тегов
+            common_data[self._data_struct.tags] = tags
+        elif not isinstance(common_data[self._data_struct.tags], list) or not isinstance(common_data[self._data_struct.tags], tuple):  # Не тот тип тегов
+            common_data[self._data_struct.tags] = tags
+        else:
+            for tag in tags:  # Проверка отсутствия в common_data тех тегов, которые есть в заметках
+                if tag not in common_data[self._data_struct.tags]:
+                    common_data[self._data_struct.tags].append(tag)
+
+        return common_data
 
     def reclaim_note(self, note: str):
         with shelve.open(self._notes_data) as notes_data:
@@ -189,6 +216,13 @@ class DataModel:
             return notes_data[note][self._data_struct.tags]
 
     def get_tags(self) -> tuple[str, ...]:
+        """Возвращает все теги."""
+        with open(self._common_data_path, 'rb') as common_data_file:
+            common_data = json.load(common_data_file)
+        return common_data[self._data_struct.tags]
+
+    def get_notes_tags(self) -> tuple[str, ...]:
+        """Возвращает теги, к которым прикреплены заметки."""
         with shelve.open(self._notes_data) as notes_data:
             tags = set()
             for note in notes_data.values():
@@ -257,6 +291,16 @@ class DataModel:
             note_data = notes_data.pop(note)
             notes_data[name] = note_data
 
+    def add_tag(self, tag: str):
+        if tag in self.get_tags():
+            raise ValueError(f'Tag must be unique, but tag {tag} already exists.')
+
+        with open(self._common_data_path, 'rb') as common_data:
+            data = json.load(common_data)
+        data[self._data_struct.tags].append(tag)
+        with open(self._common_data_path, 'w') as common_data:
+            json.dump(data, common_data)
+
     def add_note(self, name: str, tags: list[str] | tuple[str, ...]):
         with shelve.open(self._notes_data, 'w') as notes_data:
             if name in notes_data:  # Проверка на уникальность названия
@@ -321,10 +365,9 @@ if __name__ == '__main__':
     notes_data_path = Path('..', '..', 'data', 'notes_data', 'notes_data')
     notes_path = Path('..', '..', 'notes')
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
+    common_data_path = Path('..', '..', 'data', 'notes_data', 'common_data.json')
 
-    model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
-    for note in model.get_notes():
-        model.delete_note(note)
-
-    for i in range(10):
-        model.add_note(f'note#{i}', ['tag1', 'tag2'])
+    model = DataModel(notes_path, notes_data_path, common_data_path, resource_path, DataStructConst())
+    model.validate_files()
+    model.add_tag('tag4')
+    print(model.get_tags())

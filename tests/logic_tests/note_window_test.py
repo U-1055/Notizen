@@ -47,7 +47,7 @@ class TestNoteWindow(QObject):
         self.tags_changed.emit()
 
 
-class TestDataModel:
+class TestDataModel(QObject):
     note_deleted = Signal()  # Заметка удалена
     new_tags_set = Signal()  # Изменены теги
     new_content_set = Signal()  # Изменено содержимое заметки
@@ -55,24 +55,28 @@ class TestDataModel:
     new_name_set = Signal(tuple[str, str])  # Изменено имя заметки
 
     def __init__(self, note: str, tags: list[str] | tuple[str, ...], content: str, date_changing: str):
+        super().__init__()
         self.note, self.tags, self.content, self.date_changing = note, tags, content, date_changing
+
+    def _set_new_name(self):
+        self.new_name_set.emit()
 
     def delete_note(self):
         self.note_deleted.emit()
 
-    def set_note_tags(self, tags: list[str] | tuple[str, ...]):
+    def set_note_tags(self, _: str, tags: list[str] | tuple[str, ...]):
         self.tags = tags
         self.new_tags_set.emit()
 
-    def set_note_content(self, content: str):
+    def set_note_content(self, _: str, content: str):
         self.content = content
         self.new_content_set.emit()
 
-    def set_note_date_changing(self, date_changing: str):
+    def set_note_date_changing(self, _: str, date_changing: str):
         self.date_changing = date_changing
         self.new_date_changing_set.emit()
 
-    def change_note_name(self, note: str, name: str):
+    def change_note_name(self, _: str, name: str):
         self.note = name
         self.new_name_set.emit()
 

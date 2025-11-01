@@ -11,12 +11,13 @@ from src.base import DataStructConst, GuiLabels, GuiConst
 def launch():
     notes_data_path = Path('..', '..', 'data', 'notes_data', 'notes_data')
     notes_path = Path('..', '..', 'notes')
+    common_data_path = Path('..', '..', 'data', 'notes_data', 'common_data.json')
     resource_path = Path('..', '..', 'data', 'gui_data', 'resource.qrc')
 
     app_ = QApplication()
     root_ = MainWindow(GuiLabels())
-    model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
-    presenter = Logic(model, root_, GuiLabels(), GuiConst())
+    model = DataModel(notes_path, notes_data_path, common_data_path, resource_path, DataStructConst())
+    presenter = Logic(model, root_, GuiLabels(), GuiConst(), DataStructConst())
     setup_gui(root_, app_)
 
 

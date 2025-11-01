@@ -13,24 +13,58 @@ class Logic:
     # Сигналы для тестов
     note_added_to_menu = Signal(NoteView)
 
-    def __init__(self, model, view, labels: GuiLabels, gui_const: GuiConst):
+    def __init__(self, model, view, labels: GuiLabels, gui_const: GuiConst, data_struct_const: DataStructConst):
         self._model: DataModel = model
         self._view: MainWindow = view
         self._labels: GuiLabels = labels
         self._gui_const: GuiConst = gui_const
+        self._data_struct: DataStructConst = data_struct_const
 
         self._notes: list[str] = None
         self._tags: list[str] = None
-        self._search_text: str = None
         self._notes_struct: dict[str, list[str]] = {}
 
         current_style = self._model.get_last_style()  # Установка стиля
         self._view.set_style(self._model.get_style(current_style))
 
+        self._view.btn_create_note_pressed.connect(self._on_btn_create_note_pressed)
+        self._view.btn_tags_pressed.connect(self._on_btn_tags_pressed)
+        self._view.btn_update_pressed.connect(self._on_btn_update_pressed)
+        self._view.btn_search_pressed.connect(self._on_btn_search_pressed)
+        self._view.btn_dark_theme_pressed.connect(self._on_btn_dark_theme_pressed)
+        self._view.btn_light_theme_pressed.connect(self._on_btn_light_theme_pressed)
+
         self._update_state()
         tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags()))
-        self._tag_widget = self._view.get_tag_widget()
-        self._tag_widget.set_tag_menu(tag_menu)
+        tag_widget = self._view.get_tag_widget()
+        tag_widget.set_tag_menu(tag_menu)
+
+    def _on_btn_search_pressed(self):
+        self._show_relevant_notes()
+
+    def _on_btn_update_pressed(self):
+        self._update_state()
+
+    def _on_btn_create_note_pressed(self):
+        self._create_new_note()
+
+    def _on_btn_tags_pressed(self):
+        self._view.get_tag_window()
+
+    def _on_btn_light_theme_pressed(self):
+        self._view.set_style(self._model.get_style(self._data_struct.light_theme))
+
+    def _on_btn_dark_theme_pressed(self):
+        self._view.set_style(self._model.get_style(self._data_struct.dark_theme))
+
+    def _create_new_note(self):
+        def check_note(note: str) -> bool:
+            if note in self._notes:
+                return False
+
+        base_name = self._labels.base_note_name
+        if check_note(base_name):
+            note_window = self._view.open_note_window()
 
     def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
         for note in damaged_notes:
@@ -38,12 +72,29 @@ class Logic:
         self._view.show_message(self._labels.notes_reclaimed, ''.join(damaged_notes))
         self._update_state()
 
+    def _show_relevant_notes(self):
+        search_text = self._view.search_text()
+        tags = self._view.get_tag_widget().tags()
+        if search_text:
+            name_relevant_notes = list(filter(lambda note: search_text in note, self._notes))
+        if tags:
+            tags_relevant_notes = list(filter(lambda note: any(tag in tags for tag in self._model.get_note_tags(note)), self._notes))  # Находим заметки с подходящими тегами
+
+        relevant_notes = []
+        if search_text and tags:
+            relevant_notes = list(filter(lambda note: note in tags_relevant_notes, name_relevant_notes))
+        elif search_text:
+            relevant_notes = name_relevant_notes
+        elif tags:
+            relevant_notes = tags_relevant_notes
+
+        self._init_menu(relevant_notes)
+
     def _update_state(self):
         damaged_notes = self._model.validate_files()
 
         self._notes = list(filter(lambda note: note not in damaged_notes, self._model.get_notes()))
         self._tags = self._view.get_selected_tags()
-        self._search_text = self._view.text_search()
         self._notes_struct: dict[str, list[str]] = {}
 
         notes_tags = self._model.get_tags()
@@ -62,10 +113,16 @@ class Logic:
             win_damaged_notes = self._view.open_damaged_notes_window()
             win_damaged_notes.set_elements(damaged_notes)
             win_damaged_notes.elements_chosen.connect(self._reclaim_damaged_notes)
-        self._init_menu(self._notes)
+
+        if self._view.search_text() or self._view.get_tag_widget().tags():
+            self._show_relevant_notes()
+        else:
+            self._init_menu(self._notes)
 
     def _init_menu(self, notes: tuple[str, ...] | list[str]):
         self._view.clear_notes()
+        if len(notes) == 0:
+            self._view.show_no_found_label(self._labels.no_found)
 
         for note in notes:
 
@@ -87,13 +144,24 @@ class Logic:
         """Обрабатывает открытие заметки."""
         note_window = self._view.open_note_window()
 
+        self._set_note_window(note_window, note_view.name, note_view.tags, note_view.date_changing)
+
+        self.note_handler = NoteWindowHandler(note_view.name, note_window, self._model, self._labels, DataStructConst())
+        self.note_handler.closed.connect(lambda: self._close_note(note_view))
+
+    def _set_note_window(self,
+                         note_window: NoteWindow,
+                         name: str,
+                         tags: list[str] | tuple[str, ...],
+                         date_changing: str
+                         ) -> NoteWindow:
         wdg_tags = note_window.get_tag_widget()
         wdg_tags.set_tag_menu(self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags())))
 
-        note_window.tags = note_view.tags
-        note_window.name = note_view.name
-        note_window.date_changing = note_view.date_changing
-        note_window.content = self._model.get_note_content(note_view.name)
+        note_window.tags = tags
+        note_window.name = name
+        note_window.date_changing = date_changing
+        note_window.content = self._model.get_note_content(name)
 
         menu = self._view.get_menu(
             (
@@ -103,15 +171,14 @@ class Logic:
         note_window.set_ops_menu(menu)
         self._view.tried_to_close.connect(note_window.on_tried_to_close)
 
-        self.note_handler = NoteWindowHandler(note_view.name, note_window, self._model, self._labels, DataStructConst())
-        self.note_handler.closed.connect(lambda: self._close_note(note_view))
+        return note_window
 
     def _close_note(self, note_view: NoteView):
         self._view.open_main_menu()
         self._update_state()
 
     def _delete_note(self, note: str):
-        pass
+        self._model.delete_note(note)
 
 
 class NoteWindowHandler(QObject):
@@ -159,11 +226,11 @@ class NoteWindowHandler(QObject):
         if self._note_changed:
             self._on_closed()
 
-
     def _on_btn_return_pressed(self):
         if self._note_changed:
             self._on_closed()
-        self.closed.emit()
+        else:
+            self.closed.emit()
 
     def _on_closed(self):
 
@@ -175,7 +242,6 @@ class NoteWindowHandler(QObject):
             self.closed.emit()
         except ValueError:  # Новое название заметки неуникально
             self._note_window.show_error(f'{self._note_window.name} - {self._labels.name_is_not_unique_error}')
-
 
     def _on_deleted(self):
         self._model.delete_note(self._name)

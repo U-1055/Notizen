@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget, QMenu, QSizePolicy, QAbstractItemView
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QStackedWidget, QMenu, QSizePolicy, QAbstractItemView, QLabel
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Signal, Qt
 
@@ -19,6 +19,8 @@ class MainWindow(QMainWindow):
     btn_light_theme_pressed = Signal()
     btn_add_tag_pressed = Signal()
     tried_to_close = Signal()  # Окно попытались закрыть
+    btn_search_pressed = Signal()  # Нажата кнопка поиска
+    btn_update_pressed = Signal()  # Нажата кнопка "Обновить"
 
     showed = Signal()
 
@@ -32,19 +34,48 @@ class MainWindow(QMainWindow):
         self._view.setupUi(container)
         self._main_widget.insertWidget(0, container)
 
+        self._view.btn_update.clicked.connect(self.press_btn_update)
+        self._view.btn_create_note_2.clicked.connect(self.press_btn_create_note)
+        self._view.btn_search.clicked.connect(self.press_btn_search)
+        self._view.btn_tags_2.clicked.connect(self.press_btn_tags)
+        self._view.btn_dark_theme.clicked.connect(self.press_btn_dark_theme)
+        self._view.btn_light_theme.clicked.connect(self.press_btn_light_theme)
+
         self._labels = labels
 
         self._last_row, self._last_column = 0, 0
         self.open_main_menu()
-
-    def _on_tried_to_close(self):
-        self.tried_to_close.emit()
 
     def _show_damaged_notes_window(self, window: MessageListWidget):
         window.setWindowModality(Qt.WindowModality.ApplicationModal)
         window.show()
         window.raise_()
         window.selectAll()
+
+    def try_to_close(self):
+        self.tried_to_close.emit()
+
+    def press_btn_create_note(self):
+        self.btn_create_note_pressed.emit()
+
+    def press_btn_tags(self):
+        self.btn_tags_pressed.emit()
+
+    def press_btn_dark_theme(self):
+        self.btn_dark_theme_pressed.emit()
+
+    def press_btn_light_theme(self):
+        self.btn_light_theme_pressed.emit()
+
+    def press_btn_search(self):
+        self.btn_search_pressed.emit()
+
+    def press_btn_update(self):
+        self.btn_update_pressed.emit()
+
+    def show_no_found_label(self, text: str):
+        lbl = QLabel(text)
+        self._view.frm_notes.addWidget(lbl)
 
     def open_main_menu(self):
         self._main_widget.setCurrentIndex(0)
@@ -102,6 +133,12 @@ class MainWindow(QMainWindow):
         """Возвращает виджет тегов."""
         return self._view.wdg_tags
 
+    def get_tag_window(self):
+        pass
+
+    def get_create_note_window(self):
+        pass
+
     def show_message(self, title: str, message: str):
         """
         Показывает окно с сообщением.
@@ -123,14 +160,14 @@ class MainWindow(QMainWindow):
     def get_selected_tags(self) -> tuple[str]:
         pass
 
-    def text_search(self) -> str:
+    def search_text(self) -> str:
         return self._view.line_edit_search.text()
 
     def showEvent(self, event, /):
         self.showed.emit()
 
     def closeEvent(self, event, /):
-        self._on_tried_to_close()
+        self.try_to_close()
 
     def _setup_widgets(self):
         pass

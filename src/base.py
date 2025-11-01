@@ -8,6 +8,7 @@ class DataStructConst:
     tags = 'tags'
 
     note_struct = {tags: [], date_changing: ""}
+    common_data_struct = {tags: []}
 
     datetime_date_format = '%d.%m.%Y'
     light_theme = ':/styles/light_theme'
@@ -34,4 +35,5 @@ class GuiLabels:
     dont_save = 'Не сохранять'
     name_is_not_unique_error = 'Невозможно создать заметку - такая заметка уже существует'
     save_message = 'Несохранённые изменения будут утеряны.\nВы уверены, что хотите выйти?'
-
+    no_found = 'Ничего не найдено :('
+    base_note_name = 'Новая заметка'

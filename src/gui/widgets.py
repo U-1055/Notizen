@@ -249,6 +249,7 @@ class WindowDamagedNotes(QWidget):
 class WindowSave(QDialog):
     btn_save_pressed = Signal()
     btn_discard_pressed = Signal()
+    closed = Signal()
 
     def __init__(self):
         super().__init__()
@@ -264,6 +265,18 @@ class WindowSave(QDialog):
     def _on_btn_discard_pressed(self):
         self.hide()
         self.btn_discard_pressed.emit()
+
+    def setSaveText(self, text: str):
+        self._view.btn_save.setText(text)
+
+    def saveText(self) -> str:
+        return self._view.btn_save.text()
+
+    def setDiscardText(self, text: str):
+        self._view.btn_discard.setText(text)
+
+    def discardText(self) -> str:
+        return self._view.btn_discard.text()
 
     def setText(self, text: str):
         self._view.label.setText(text)
