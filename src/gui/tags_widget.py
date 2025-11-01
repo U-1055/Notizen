@@ -7,6 +7,8 @@ from src.gui.ui_tag_card import Ui_Form as UiTagCard
 
 
 class TagWidget(QWidget):
+    tag_deleted = Signal(str)  # Тег удалён, передаёт тег
+    tag_added = Signal(str)  # Тег добавлен, передаёт тег
 
     def __init__(self, menu: QMenu = None):
         super().__init__()
@@ -32,7 +34,7 @@ class TagWidget(QWidget):
             wdg_tag.deleted.connect(self._delete_tag)
 
             self._view.frm_tags.addWidget(wdg_tag)
-
+            self.tag_added.emit(tag)
             if self._tag_menu:
                 self._tag_menu.removeAction(action)
                 if len(self._tag_menu.actions()) == 0:
@@ -40,6 +42,7 @@ class TagWidget(QWidget):
 
     def _delete_tag(self, tag: str):
         self._tags.remove(tag)
+        self.tag_deleted.emit(tag)
 
         action = QAction(tag, self)
         action.triggered.connect(lambda: self._add_tag(action))
@@ -68,7 +71,8 @@ class TagWidget(QWidget):
         menu_tags = []
         for action in self._tag_menu.actions():  # Привязка действий к слотам
             menu_tags.append(action.text())
-            action.triggered.connect(lambda _, act=action: self._add_tag(act))
+            if action not in self.tags():
+                action.triggered.connect(lambda _, act=action: self._add_tag(act))
 
         for tag in self.tags():  # Удаление тегов, которых нет в меню
             if tag not in menu_tags:

@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
     btn_dark_theme_pressed = Signal()
     btn_light_theme_pressed = Signal()
     btn_add_tag_pressed = Signal()
+    tried_to_close = Signal()  # Окно попытались закрыть
 
     showed = Signal()
 
@@ -35,6 +36,9 @@ class MainWindow(QMainWindow):
 
         self._last_row, self._last_column = 0, 0
         self.open_main_menu()
+
+    def _on_tried_to_close(self):
+        self.tried_to_close.emit()
 
     def _show_damaged_notes_window(self, window: MessageListWidget):
         window.setWindowModality(Qt.WindowModality.ApplicationModal)
@@ -88,9 +92,9 @@ class MainWindow(QMainWindow):
         menu = QMenu()
 
         actions = [QAction(el[0], self) for el in elements]
-        [action.triggered.connect(elements[idx][1]) for idx, action in enumerate(actions)]  # Привязка слотов к действиям
+        list(action.triggered.connect(elements[idx][1]) for idx, action in enumerate(actions))  # Привязка слотов к действиям
 
-        menu.addActions([QAction(el[0], self) for el in elements])  # Добавление действий в меню
+        menu.addActions(actions)  # Добавление действий в меню
 
         return menu
 
@@ -124,6 +128,9 @@ class MainWindow(QMainWindow):
 
     def showEvent(self, event, /):
         self.showed.emit()
+
+    def closeEvent(self, event, /):
+        self._on_tried_to_close()
 
     def _setup_widgets(self):
         pass

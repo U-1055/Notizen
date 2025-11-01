@@ -3,7 +3,7 @@ import datetime
 from src.gui.view import MainWindow
 from src.gui.widgets import NoteView, NoteWindow
 from src.src.model import DataModel
-from src.base import GuiLabels
+from src.base import GuiLabels, DataStructConst, GuiConst
 
 from PySide6.QtCore import Signal, QObject
 
@@ -13,10 +13,11 @@ class Logic:
     # Сигналы для тестов
     note_added_to_menu = Signal(NoteView)
 
-    def __init__(self, model, view, labels: GuiLabels):
+    def __init__(self, model, view, labels: GuiLabels, gui_const: GuiConst):
         self._model: DataModel = model
         self._view: MainWindow = view
         self._labels: GuiLabels = labels
+        self._gui_const: GuiConst = gui_const
 
         self._notes: list[str] = None
         self._tags: list[str] = None
@@ -71,76 +72,124 @@ class Logic:
             note_view = self._view.add_note()
 
             note_view.name = note
-            note_view.content = self._model.get_note_content(note)
+            content = self._model.get_note_content(note)
+            if len(content) > self._gui_const.max_text_view_length:
+                content = f'{content[0:self._gui_const.max_text_view_length]}...'
+            note_view.content = content
             note_view.date_changing = self._model.get_note_date_changing(note)
             note_view.tags = self._model.get_note_tags(note)
 
-            note_view.setMenu(self._view.get_menu(((self._labels.delete, lambda: self._delete_note(note)),)))
+            note_view.setMenu(self._view.get_menu(((self._labels.delete, lambda _, name=note_view.name: self._delete_note(name)),)))
 
             note_view.pressed.connect(lambda note=note_view: self._open_note(note))
 
     def _open_note(self, note_view: NoteView):
         """Обрабатывает открытие заметки."""
         note_window = self._view.open_note_window()
-        self.note_handler = NoteWindowHandler(note_window, self._model)
+
+        wdg_tags = note_window.get_tag_widget()
+        wdg_tags.set_tag_menu(self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags())))
 
         note_window.tags = note_view.tags
         note_window.name = note_view.name
         note_window.date_changing = note_view.date_changing
-        note_window.content = note_view.content
+        note_window.content = self._model.get_note_content(note_view.name)
 
-        self.note_handler.closed.connect(self._close_note)
+        menu = self._view.get_menu(
+            (
+                (self._labels.delete, note_window.on_btn_delete_pressed),
+            )
+        )
+        note_window.set_ops_menu(menu)
+        self._view.tried_to_close.connect(note_window.on_tried_to_close)
 
-    def _close_note(self):
+        self.note_handler = NoteWindowHandler(note_view.name, note_window, self._model, self._labels, DataStructConst())
+        self.note_handler.closed.connect(lambda: self._close_note(note_view))
+
+    def _close_note(self, note_view: NoteView):
         self._view.open_main_menu()
+        self._update_state()
 
     def _delete_note(self, note: str):
         pass
 
 
-class NoteWidgetHandler:
-
-    def __init__(self, note_view):
-        self._name: str = None
-        self._content: str = None
-        self._date_changing: str = None
-        self._tags: list[str] = None
-
-
 class NoteWindowHandler(QObject):
     closed = Signal()  # Handler сам обрабатывает сигналы от NoteWindow
 
-    def __init__(self, note_window: NoteWindow, model: DataModel):
+    def __init__(self, name: str, note_window: NoteWindow, model: DataModel, labels: GuiLabels, data_struct_const: DataStructConst):
         super().__init__()
-        self._is_changed = False
+        self._model = model
+        self._labels = labels
+        self._data_struct = data_struct_const
+        self._name = name
+        self._name_changed = False
+        self._note_changed = False
 
         self._note_window = note_window
-        self._note_window.closed.connect(self.closed.emit)
+
+        self._note_window.tried_to_close.connect(self._on_tried_to_close)
+        self._note_window.btn_return_pressed.connect(self._on_btn_return_pressed)
         self._note_window.name_changed.connect(self._on_name_changed)
+        self._note_window.tags_changed.connect(self._on_change)
+        self._note_window.text_changed.connect(self._on_change)
+        self._note_window.btn_save_pressed.connect(self._save_note)
+        self._note_window.btn_delete_pressed.connect(self._on_deleted)
 
-        self._note_window.name_changed.connect(self._to_changed)
-        self._note_window.tags_changed.connect(self._to_changed)
-        self._note_window.text_changed.connect(self._to_changed)
+    def _save_note(self):
 
-        self._note_window.name_changed.connect(self._on_name_changed)
-        self._note_window.tags_changed.connect(self._on_tags_changed)
-        self._note_window.text_changed.connect(self._on_text_changed)
+        if not self._note_changed:  # Если заметка не изменена
+            return
 
-    def _to_changed(self):
-        self._is_changed = True
+        if self._name_changed:
+            try:
+                self._model.change_note_name(self._name, self._note_window.name)
+                self._name = self._note_window.name
+            except ValueError as error:  # Если название неуникально
+                raise error
 
-    def _on_name_changed(self, name: str):
-        pass
+        self._model.set_note_tags(self._name, self._note_window.tags)
+        self._model.set_note_content(self._name, self._note_window.content)
+        self._model.set_note_date_changing(self._name, str(datetime.date.today().strftime(self._data_struct.datetime_date_format)))
 
-    def _on_text_changed(self, text: str):
-        pass
+        self._name_changed = False
+        self._note_changed = False
 
-    def _on_tags_changed(self, tags: tuple[str, ...]):
-        pass
+    def _on_tried_to_close(self):
+        if self._note_changed:
+            self._on_closed()
+
+
+    def _on_btn_return_pressed(self):
+        if self._note_changed:
+            self._on_closed()
+        self.closed.emit()
+
+    def _on_closed(self):
+
+        win_save = self._note_window.show_save_message(self._labels.save_message)
+        win_save.btn_save_pressed.connect(self._save_note)
+
+        try:
+            self._save_note()
+            self.closed.emit()
+        except ValueError:  # Новое название заметки неуникально
+            self._note_window.show_error(f'{self._note_window.name} - {self._labels.name_is_not_unique_error}')
+
+
+    def _on_deleted(self):
+        self._model.delete_note(self._name)
+        self.closed.emit()
+
+    def _on_name_changed(self):
+        self._name_changed = True
+        self._note_changed = True
+
+    def _on_change(self):
+        self._note_changed = True
 
     def _close_window(self):
         self.closed.emit()
-        self._note_window.close_window()
 
 
 if __name__ == '__main__':

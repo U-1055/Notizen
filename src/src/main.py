@@ -5,7 +5,7 @@ from pathlib import Path
 from src.gui.view import MainWindow, setup_gui
 from src.src.logic import Logic
 from src.src.model import DataModel
-from src.base import DataStructConst, GuiLabels
+from src.base import DataStructConst, GuiLabels, GuiConst
 
 
 def launch():
@@ -16,7 +16,7 @@ def launch():
     app_ = QApplication()
     root_ = MainWindow(GuiLabels())
     model = DataModel(notes_path, notes_data_path, resource_path, DataStructConst())
-    presenter = Logic(model, root_, GuiLabels())
+    presenter = Logic(model, root_, GuiLabels(), GuiConst())
     setup_gui(root_, app_)
 
 

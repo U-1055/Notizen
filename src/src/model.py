@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.base import DataConst, DataStructConst
 import src.gui.resources_rc
+from utils.utils import date_to_format
 
 
 class DataModel:
@@ -88,7 +89,7 @@ class DataModel:
                         if not isinstance(note_data[key], str):
                             err_codes.append(self.unknown_date_type)  # ToDo: сделать проверку соответствия формату даты
 
-        return err_codes  # Заметка корректна
+        return err_codes
 
     def _get_note_file_date_changing(self, note: str) -> datetime:
         """Возвращает дату последнего изменения файла заметки."""
@@ -208,9 +209,12 @@ class DataModel:
             return tuple(notes_data.keys())
 
     def set_note_date_changing(self, note: str, date_changing: str):
+        if not date_to_format(date_changing, self._data_struct.datetime_date_format, 3):
+            raise ValueError(f'The date {date_changing} is uncorrect. It must be in format {self._data_struct.datetime_date_format}')
+
         with shelve.open(self._notes_data, 'r') as notes_data:
             data = notes_data[note]
-            data[self._data_struct.date_changing] = date_changing  # ToDo: разобраться с этим и примером из доки (изменением в одном контекстном менеджере)
+            data[self._data_struct.date_changing] = date_changing
 
         with shelve.open(self._notes_data, 'w') as notes_data:
             notes_data[note] = data
@@ -218,13 +222,14 @@ class DataModel:
     def set_note_tags(self, note: str, tags: list[str] | tuple[str, ...]):
         with shelve.open(self._notes_data, 'r') as notes_data:
             data = notes_data[note]
-            data[self._data_struct.tags] = tags
+            data[self._data_struct.tags] = list(tags)
 
         with shelve.open(self._notes_data, 'w') as notes_data:
             notes_data[note] = data
 
     def set_note_content(self, note: str, content: str):
-        with open(Path(self._notes, f'{note}.txt')) as note_content:
+
+        with open(Path(self._notes, f'{note}.txt'), 'w') as note_content:
             note_content.write(content)
 
     def delete_note(self, note: str):
@@ -238,6 +243,11 @@ class DataModel:
             pass
 
     def change_note_name(self, note: str, name: str):
+        """
+        Изменяет название заметки.
+        :param note: текущее название заметки.
+        :param name: новое название.
+        """
         if name in self.get_notes():  # Проверка на уникальность названия
             raise ValueError(f'Name must be unique, but name {name} already exists.')
 
@@ -317,4 +327,4 @@ if __name__ == '__main__':
         model.delete_note(note)
 
     for i in range(10):
-        model.add_note(f'note#{i}', [])
+        model.add_note(f'note#{i}', ['tag1', 'tag2'])

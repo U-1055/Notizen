@@ -1,34 +1,92 @@
-from PySide6.QtWidgets import QWidget, QMenu, QLabel
-from PySide6.QtCore import Signal
-from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QWidget, QMenu, QLabel, QMessageBox, QDialog
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QAction, QCloseEvent
 
 import datetime
+import typing as tp
 
 from src.gui.ui_note_widget import Ui_Form
 from src.gui.ui_note_window import Ui_Form as UiNoteWindow
 from src.gui.ui_elements_window import Ui_Form as UiElementsWindow
+from src.gui.ui_save_window import Ui_Form as UiSaveWindow
 
 
 class NoteWindow(QWidget):
-    closed = Signal()  # Сигнал закрытия окна
-    name_changed = Signal(str)  # Название изменено, возвращает название
-    text_changed = Signal()  # Текст изменён, возвращает число изменённых символов
-    tags_changed = Signal(tuple)  # Теги изменены, возвращает теги
+    tried_to_close = Signal()  # Сигнал закрытия окна, передаёт событие закрытия
+    name_changed = Signal()  # Название изменено
+    text_changed = Signal()  # Текст изменён
+    tags_changed = Signal()  # Теги изменены
     btn_save_pressed = Signal()  # Нажата кнопка сохранения
+    btn_delete_pressed = Signal()  # Нажата кнопка удаления заметки
+    btn_return_pressed = Signal()  # Нажата кнопка "Назад"
 
     def __init__(self):
         super().__init__()
         self._view = UiNoteWindow()
         self._view.setupUi(self)
-        self._view.btn_return.clicked.connect(self.closed.emit)
-        self._view.line_edit_name.textChanged.connect(lambda: self.name_changed.emit(self.name))
-        self._view.wdg_text.textChanged.connect(self.text_changed.emit)
-        #  Сигнал изменения тегов
+
+        self._view.btn_return.clicked.connect(self._on_btn_return_pressed)
+        self._view.line_edit_name.textChanged.connect(self._on_name_changed)
+        self._view.wdg_text.textChanged.connect(self._on_text_changed)
+        self._view.wdg_tags.tag_deleted.connect(self._on_tags_changed)
+        self._view.wdg_tags.tag_added.connect(self._on_tags_changed)
+        self._view.btn_save.clicked.connect(self._on_btn_save_pressed)
+        self._view.btn_info.clicked.connect(self._on_btn_info_pressed)
 
         self._name = self._content = self._date_changing = self._tags = None
 
-    def close_window(self):
-        pass
+    def _on_btn_return_pressed(self):
+        self.btn_return_pressed.emit()
+
+    def _on_btn_info_pressed(self):
+        menu = self._view.btn_info.menu()
+        if menu:
+            self._view.btn_info.showMenu()
+            menu.exec()
+
+    def _on_btn_save_pressed(self):
+        self.btn_save_pressed.emit()
+
+    def _on_name_changed(self):
+        self.name_changed.emit()
+
+    def _on_text_changed(self):
+        self.text_changed.emit()
+
+    def _on_tags_changed(self):
+        self.tags_changed.emit()
+
+    def on_tried_to_close(self):
+        self.tried_to_close.emit()
+
+    def on_btn_delete_pressed(self):
+        self.btn_delete_pressed.emit()
+
+    def set_ops_menu(self, menu: QMenu):
+        """
+        Устанавливает меню операций.
+        :param menu: меню.
+        """
+        self._view.btn_info.setMenu(menu)
+        self._view.btn_info.menu()  # Иначе последующие вызовы menu() будут возвращать None ToDo: понять, почему
+
+    def show_error(self, text: str):
+        win_error = QMessageBox()
+        win_error.setText(text)
+        win_error.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        win_error.exec()
+
+    def show_save_message(self, text: str) -> 'WindowSave':
+        win_save = WindowSave()
+        win_save.setText(text)
+        win_save.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        win_save.exec()
+        return win_save
+
+    def get_tag_widget(self):
+        return self._view.wdg_tags
 
     @property
     def name(self) -> str:
@@ -56,11 +114,11 @@ class NoteWindow(QWidget):
 
     @property
     def tags(self) -> list[str]:
-        return self._tags
+        return list(self._view.wdg_tags.tags())
 
     @tags.setter
     def tags(self, tags: list[str, ...]):
-        self._tags = tags
+        self._view.wdg_tags.set_tags(tags)
 
 
 class NoteView(QWidget):
@@ -186,6 +244,32 @@ class WindowDamagedNotes(QWidget):
 
     def set_notes(self, notes: tuple[str, ...] | list[str]):
         self._notes = notes
+
+
+class WindowSave(QDialog):
+    btn_save_pressed = Signal()
+    btn_discard_pressed = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self._view = UiSaveWindow()
+        self._view.setupUi(self)
+        self._view.btn_save.clicked.connect(self._on_btn_save_pressed)
+        self._view.btn_discard.clicked.connect(self._on_btn_discard_pressed)
+
+    def _on_btn_save_pressed(self):
+        self.btn_save_pressed.emit()
+        self.hide()
+
+    def _on_btn_discard_pressed(self):
+        self.hide()
+        self.btn_discard_pressed.emit()
+
+    def setText(self, text: str):
+        self._view.label.setText(text)
+
+    def text(self) -> str:
+        return self._view.label.text()
 
 
 if __name__ == '__main__':
