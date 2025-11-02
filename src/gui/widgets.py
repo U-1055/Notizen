@@ -77,13 +77,15 @@ class NoteWindow(QWidget):
 
         win_error.exec()
 
-    def show_save_message(self, text: str) -> 'WindowSave':
+    def show_save_message(self, text: str, save_func: tp.Callable, discard_func: tp.Callable):
         win_save = WindowSave()
         win_save.setText(text)
         win_save.setWindowModality(Qt.WindowModality.ApplicationModal)
+        win_save.btn_save_pressed.connect(save_func)
+        win_save.btn_discard_pressed.connect(discard_func)
 
         win_save.exec()
-        return win_save
+
 
     def get_tag_widget(self):
         return self._view.wdg_tags
@@ -123,6 +125,7 @@ class NoteWindow(QWidget):
 
 class NoteView(QWidget):
     pressed = Signal(object)  # Сигнал нажатия на заметку. Передает экземпляр класса заметки(себя)
+    btn_delete_pressed = Signal(object)  # Нажата кнопка удаления. Передает себя
 
     def __init__(self):
         super().__init__()
@@ -134,6 +137,9 @@ class NoteView(QWidget):
         self._date_changing: str = None
         self._tags: list[str] = None
         self._context_menu: QMenu = None
+
+    def press_btn_delete(self):
+        self.btn_delete_pressed.emit(self)
 
     def setup_wdg_state(self):
         """Устанавливает надписи на виджете."""

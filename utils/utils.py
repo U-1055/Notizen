@@ -31,6 +31,17 @@ def date_to_format(date: str, format_: str, date_elements: int) -> str | bool:  
         return False
 
 
+def set_unique_note_name(note: str, notes: list[str] | tuple[str, ...]) -> str:
+    """Устанавливает уникальное имя для заметки"""
+
+    if note in notes:
+        for i in range(2, len(notes) + 3):
+            new_name = f'{note}({i})'
+            if new_name not in notes:
+                return new_name
+    return note
+
+
 if __name__ == '__main__':
     pass
 

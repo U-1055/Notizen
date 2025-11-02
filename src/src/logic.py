@@ -4,8 +4,9 @@ from src.gui.view import MainWindow
 from src.gui.widgets import NoteView, NoteWindow
 from src.src.model import DataModel
 from src.base import GuiLabels, DataStructConst, GuiConst
+from utils.utils import set_unique_note_name
 
-from PySide6.QtCore import Signal, QObject
+from PySide6.QtCore import Signal, QObject, Slot
 
 
 class Logic:
@@ -58,13 +59,15 @@ class Logic:
         self._view.set_style(self._model.get_style(self._data_struct.dark_theme))
 
     def _create_new_note(self):
-        def check_note(note: str) -> bool:
-            if note in self._notes:
-                return False
 
-        base_name = self._labels.base_note_name
-        if check_note(base_name):
-            note_window = self._view.open_note_window()
+        name = set_unique_note_name(self._labels.base_note_name, self._notes)
+        self._model.add_note(name, [])
+
+        note_window = self._view.open_note_window()
+        note_window = self._set_note_window(note_window, name, [], datetime.date.today().strftime(self._data_struct.datetime_date_format))
+
+        note_handler = NoteWindowHandler(name, note_window, self._model, self._labels, DataStructConst())
+        note_handler.closed.connect(self._close_note)
 
     def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
         for note in damaged_notes:
@@ -74,6 +77,10 @@ class Logic:
 
     def _show_relevant_notes(self):
         search_text = self._view.search_text()
+
+        if search_text == '':  # Если текста нет - поиск не происходит
+            return
+
         tags = self._view.get_tag_widget().tags()
         if search_text:
             name_relevant_notes = list(filter(lambda note: search_text in note, self._notes))
@@ -136,7 +143,8 @@ class Logic:
             note_view.date_changing = self._model.get_note_date_changing(note)
             note_view.tags = self._model.get_note_tags(note)
 
-            note_view.setMenu(self._view.get_menu(((self._labels.delete, lambda _, name=note_view.name: self._delete_note(name)),)))
+            note_view.setMenu(self._view.get_menu(((self._labels.delete, note_view.press_btn_delete),)))
+            note_view.btn_delete_pressed.connect(self._delete_note)
 
             note_view.pressed.connect(lambda note=note_view: self._open_note(note))
 
@@ -146,8 +154,8 @@ class Logic:
 
         self._set_note_window(note_window, note_view.name, note_view.tags, note_view.date_changing)
 
-        self.note_handler = NoteWindowHandler(note_view.name, note_window, self._model, self._labels, DataStructConst())
-        self.note_handler.closed.connect(lambda: self._close_note(note_view))
+        note_handler = NoteWindowHandler(note_view.name, note_window, self._model, self._labels, DataStructConst())
+        note_handler.closed.connect(self._close_note)
 
     def _set_note_window(self,
                          note_window: NoteWindow,
@@ -173,12 +181,14 @@ class Logic:
 
         return note_window
 
-    def _close_note(self, note_view: NoteView):
+    def _close_note(self):
         self._view.open_main_menu()
         self._update_state()
 
-    def _delete_note(self, note: str):
-        self._model.delete_note(note)
+    def _delete_note(self, note_view: NoteView):
+        self._model.delete_note(note_view.name)
+        self._notes.pop(self._notes.index(note_view.name))
+        note_view.hide()
 
 
 class NoteWindowHandler(QObject):
@@ -195,8 +205,8 @@ class NoteWindowHandler(QObject):
 
         self._note_window = note_window
 
-        self._note_window.tried_to_close.connect(self._on_tried_to_close)
-        self._note_window.btn_return_pressed.connect(self._on_btn_return_pressed)
+        self._note_window.tried_to_close.connect(lambda: self._on_close())
+        self._note_window.btn_return_pressed.connect(lambda: self._on_close())
         self._note_window.name_changed.connect(self._on_name_changed)
         self._note_window.tags_changed.connect(self._on_change)
         self._note_window.text_changed.connect(self._on_change)
@@ -212,8 +222,8 @@ class NoteWindowHandler(QObject):
             try:
                 self._model.change_note_name(self._name, self._note_window.name)
                 self._name = self._note_window.name
-            except ValueError as error:  # Если название неуникально
-                raise error
+            except ValueError:  # Если название неуникально
+                self._note_window.show_error(f'{self._note_window.name} - {self._labels.name_is_not_unique_error}')
 
         self._model.set_note_tags(self._name, self._note_window.tags)
         self._model.set_note_content(self._name, self._note_window.content)
@@ -222,30 +232,24 @@ class NoteWindowHandler(QObject):
         self._name_changed = False
         self._note_changed = False
 
-    def _on_tried_to_close(self):
-        if self._note_changed:
-            self._on_closed()
+    def _save(self):
+        self._save_note()
+        self._close_window()
 
-    def _on_btn_return_pressed(self):
+    def _discard(self):
+        self._name_changed = False
+        self._note_changed = False
+        self._close_window()
+
+    def _on_close(self):
         if self._note_changed:
-            self._on_closed()
+            self._note_window.show_save_message(self._labels.save_message, self._save, self._close_window)
         else:
-            self.closed.emit()
-
-    def _on_closed(self):
-
-        win_save = self._note_window.show_save_message(self._labels.save_message)
-        win_save.btn_save_pressed.connect(self._save_note)
-
-        try:
-            self._save_note()
-            self.closed.emit()
-        except ValueError:  # Новое название заметки неуникально
-            self._note_window.show_error(f'{self._note_window.name} - {self._labels.name_is_not_unique_error}')
+            self._close_window()
 
     def _on_deleted(self):
         self._model.delete_note(self._name)
-        self.closed.emit()
+        self._close_window()
 
     def _on_name_changed(self):
         self._name_changed = True

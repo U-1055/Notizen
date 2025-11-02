@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
 
     def show_no_found_label(self, text: str):
         lbl = QLabel(text)
-        self._view.frm_notes.addWidget(lbl)
+        self._view.frm_notes.addWidget(lbl, 0, 0, 1, 2)
 
     def open_main_menu(self):
         self._main_widget.setCurrentIndex(0)

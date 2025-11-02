@@ -5,6 +5,7 @@ from src.src.logic import NoteWindowHandler
 from src.src.model import DataModel
 from src.gui.widgets import NoteWindow
 from src.base import DataStructConst, GuiLabels
+from tests.mock_objects import MockTagWidget
 
 
 class TestNoteWindow(QObject):
@@ -26,6 +27,15 @@ class TestNoteWindow(QObject):
         super().__init__()
         self.name = self.tags = self.content = self.date_changing = None
 
+    def on_btn_delete_pressed(self):
+        pass
+
+    def on_tried_to_close(self):
+        pass
+
+    def set_ops_menu(self, menu):
+        pass
+
     def show_error(self, text: str):
         self.error_shown.emit()
 
@@ -45,6 +55,10 @@ class TestNoteWindow(QObject):
     def change_tags(self, tags: list[str] | tuple[str, ...]):
         self.tags = tags
         self.tags_changed.emit()
+
+    def get_tag_widget(self) -> MockTagWidget:
+        return MockTagWidget()
+
 
 
 class TestDataModel(QObject):
