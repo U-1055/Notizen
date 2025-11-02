@@ -6,7 +6,7 @@ import typing as tp
 
 from src.interfaces import IView
 from src.gui.ui_view import Ui_Form
-from src.gui.widgets import NoteView, NoteWindow, MessageListWidget
+from src.gui.widgets import NoteView, NoteWindow, MessageListWidget, TagManageWindget
 from src.gui.tags_widget import TagWidget
 from src.base import GuiLabels
 
@@ -133,11 +133,12 @@ class MainWindow(QMainWindow):
         """Возвращает виджет тегов."""
         return self._view.wdg_tags
 
-    def get_tag_window(self):
-        pass
+    def show_tag_manage_widget(self) -> TagManageWindget:
+        wdg_tags_manage = TagManageWindget(self._labels)
+        wdg_tags_manage.setWindowModality(Qt.WindowModality.ApplicationModal)
+        wdg_tags_manage.setStyleSheet(self.styleSheet())
 
-    def get_create_note_window(self):
-        pass
+        return wdg_tags_manage
 
     def show_message(self, title: str, message: str):
         """

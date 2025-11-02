@@ -36,9 +36,6 @@ class Logic:
         self._view.btn_light_theme_pressed.connect(self._on_btn_light_theme_pressed)
 
         self._update_state()
-        tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags()))
-        tag_widget = self._view.get_tag_widget()
-        tag_widget.set_tag_menu(tag_menu)
 
     def _on_btn_search_pressed(self):
         self._show_relevant_notes()
@@ -50,13 +47,35 @@ class Logic:
         self._create_new_note()
 
     def _on_btn_tags_pressed(self):
-        self._view.get_tag_window()
+        wdg_tags_manage = self._view.show_tag_manage_widget()
+
+        wdg_tags_manage.setWindowTitle(self._labels.title_tags_manage_widget)
+        wdg_tags_manage.setBtnAddText(self._labels.add_tag)
+        wdg_tags_manage.setBtnSaveText(self._labels.save)
+        wdg_tags_manage.setBtnConfirmText(self._labels.confirm)
+
+        wdg_tags_manage.set_tags(self._model.get_tags())
+        wdg_tags_manage.btn_save_pressed.connect(lambda: self._change_tags(wdg_tags_manage.tags()))
+        wdg_tags_manage.exec()
 
     def _on_btn_light_theme_pressed(self):
         self._view.set_style(self._model.get_style(self._data_struct.light_theme))
 
     def _on_btn_dark_theme_pressed(self):
         self._view.set_style(self._model.get_style(self._data_struct.dark_theme))
+
+    def _change_tags(self, new_tags: tuple[str, ...]):
+        """Изменяет теги: сравнивает полученные теги с текущими, меняет теги в базе и обновляет состояние."""
+
+        current_tags = self._model.get_tags()
+        for tag in new_tags:  # Добавление новых тегов
+            if tag not in current_tags:
+                self._model.add_tag(tag)
+
+        for tag in current_tags:  # Удаление удалённых тегов
+            if tag not in new_tags:
+                self._model.delete_tag(tag)
+        self._update_state()
 
     def _create_new_note(self):
 
@@ -101,8 +120,11 @@ class Logic:
         damaged_notes = self._model.validate_files()
 
         self._notes = list(filter(lambda note: note not in damaged_notes, self._model.get_notes()))
-        self._tags = self._view.get_selected_tags()
         self._notes_struct: dict[str, list[str]] = {}
+
+        tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags()))  # Настройка виджета тегов
+        tag_widget = self._view.get_tag_widget()
+        tag_widget.set_tag_menu(tag_menu)
 
         notes_tags = self._model.get_tags()
 

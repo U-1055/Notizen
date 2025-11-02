@@ -37,3 +37,9 @@ class GuiLabels:
     save_message = 'Несохранённые изменения будут утеряны.\nВы уверены, что хотите выйти?'
     no_found = 'Ничего не найдено :('
     base_note_name = 'Новая заметка'
+    confirm = ''
+    add_tag = '+'
+    tag_exists_message = 'Такой тег уже существует'
+    title_win_message = 'Сообщение'
+    title_tags_manage_widget = 'Редактирование тегов'
+

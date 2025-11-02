@@ -147,10 +147,14 @@ class DataModel:
 
     def reclaim_common_data(self, common_data: dict) -> dict:
         """Восстанавливает common_data при наличии повреждений."""
-        tags = self.get_notes_tags()
+        try:
+            tags = self.get_notes_tags()
+        except TypeError:  # Может быть ошибка, т.к. основная база ещё не восстановлена
+            return common_data
+
         if self._data_struct.tags not in common_data:  # Нет тегов
             common_data[self._data_struct.tags] = tags
-        elif not isinstance(common_data[self._data_struct.tags], list) or not isinstance(common_data[self._data_struct.tags], tuple):  # Не тот тип тегов
+        elif not isinstance(common_data[self._data_struct.tags], list) and not isinstance(common_data[self._data_struct.tags], tuple):  # Не тот тип тегов
             common_data[self._data_struct.tags] = tags
         else:
             for tag in tags:  # Проверка отсутствия в common_data тех тегов, которые есть в заметках
@@ -301,6 +305,25 @@ class DataModel:
         with open(self._common_data_path, 'w') as common_data:
             json.dump(data, common_data)
 
+    def delete_tag(self, tag: str):
+        with open(self._common_data_path, 'rb') as common_data:
+            data = json.load(common_data)
+        data[self._data_struct.tags].remove(tag)
+        with open(self._common_data_path, 'w') as common_data:
+            json.dump(data, common_data)
+
+        if tag in self.get_notes_tags():  # Если к тегу прикреплены заметки
+            with shelve.open(self._notes_data, 'w') as notes_data:
+                for note in notes_data:
+                    if tag in notes_data[note][self._data_struct.tags]:
+                        note_tags = notes_data[note][self._data_struct.tags]
+                        note_tags.remove(tag)
+                        new_data = {
+                            self._data_struct.tags: note_tags,
+                            self._data_struct.date_changing: notes_data[note][self._data_struct.date_changing]
+                        }
+                        notes_data[note] = new_data
+
     def add_note(self, name: str, tags: list[str] | tuple[str, ...]):
         with shelve.open(self._notes_data, 'w') as notes_data:
             if name in notes_data:  # Проверка на уникальность названия
@@ -368,6 +391,9 @@ if __name__ == '__main__':
     common_data_path = Path('..', '..', 'data', 'notes_data', 'common_data.json')
 
     model = DataModel(notes_path, notes_data_path, common_data_path, resource_path, DataStructConst())
-    model.validate_files()
-    model.add_tag('tag4')
-    print(model.get_tags())
+
+    for note in model.get_notes():
+        model.delete_note(note)
+
+    for i in range(10):
+        model.add_note(f'note#{i}', ['tag1', 'tag2'])

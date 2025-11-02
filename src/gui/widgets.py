@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QMenu, QLabel, QMessageBox, QDialog
+from PySide6.QtWidgets import QWidget, QMenu, QLabel, QMessageBox, QDialog, QLineEdit, QHBoxLayout, QPushButton
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QAction, QCloseEvent
 
@@ -9,9 +9,20 @@ from src.gui.ui_note_widget import Ui_Form
 from src.gui.ui_note_window import Ui_Form as UiNoteWindow
 from src.gui.ui_elements_window import Ui_Form as UiElementsWindow
 from src.gui.ui_save_window import Ui_Form as UiSaveWindow
+from src.gui.ui_tags_manage_widget import Ui_Form as UiTagManageWidget
+from src.gui.tags_widget import TagCardWidget
+from src.base import GuiLabels
 
 
 class NoteWindow(QWidget):
+    """
+    Окно заметки.
+    :var name: название заметки.
+    :var content: содержимое заметки.
+    :var tags: теги заметки.
+    :var date_changing: дата изменения заметки.
+    """
+
     tried_to_close = Signal()  # Сигнал закрытия окна, передаёт событие закрытия
     name_changed = Signal()  # Название изменено
     text_changed = Signal()  # Текст изменён
@@ -33,7 +44,7 @@ class NoteWindow(QWidget):
         self._view.btn_save.clicked.connect(self._on_btn_save_pressed)
         self._view.btn_info.clicked.connect(self._on_btn_info_pressed)
 
-        self._name = self._content = self._date_changing = self._tags = None
+        self._date_changing = None
 
     def _on_btn_return_pressed(self):
         self.btn_return_pressed.emit()
@@ -124,6 +135,8 @@ class NoteWindow(QWidget):
 
 
 class NoteView(QWidget):
+    """Виджет заметки."""
+
     pressed = Signal(object)  # Сигнал нажатия на заметку. Передает экземпляр класса заметки(себя)
     btn_delete_pressed = Signal(object)  # Нажата кнопка удаления. Передает себя
 
@@ -199,16 +212,9 @@ class NoteView(QWidget):
         self._tags.append(tag)
 
 
-class WindowTagChoose(QWidget):
-    tag_chosen = Signal(str)
-
-    def __init__(self):
-        super().__init__()
-
-
 class MessageListWidget(QWidget):
-    """Виджет для сообщений с множественным выбором элементов."""
-    elements_chosen = Signal(tuple)
+    """Виджет для сообщений с множественным выбором элементов"""
+    elements_chosen = Signal(tuple)  # Элементы выбраны
 
     def __init__(self):
         super().__init__()
@@ -241,6 +247,7 @@ class MessageListWidget(QWidget):
 
 
 class WindowDamagedNotes(QWidget):
+
     notes_chosen = Signal(tuple[str, ...])
     reclaiming_cancelled = Signal()
 
@@ -253,9 +260,10 @@ class WindowDamagedNotes(QWidget):
 
 
 class WindowSave(QDialog):
-    btn_save_pressed = Signal()
-    btn_discard_pressed = Signal()
-    closed = Signal()
+    """Окно подтверждения выхода при несохранённых данных."""
+
+    btn_save_pressed = Signal()  # Нажата кнопка сохранения
+    btn_discard_pressed = Signal()  # Нажата кнопка выхода
 
     def __init__(self):
         super().__init__()
@@ -289,6 +297,154 @@ class WindowSave(QDialog):
 
     def text(self) -> str:
         return self._view.label.text()
+
+
+class LineEditBtn(QWidget):
+    """QLineEdit с кнопкой QPushButton."""
+
+    editingFinished = Signal()
+    textChanged = Signal(str)
+    textEdited = Signal(str)
+    clicked = Signal(bool)
+
+    def __init__(self, text: str = None):
+        super().__init__()
+        self._main_layout = QHBoxLayout()
+        self._line_edit = QLineEdit(text)
+        self._btn = QPushButton()
+
+        self._btn.clicked.connect(lambda state: self.clicked.emit(state))
+        self._line_edit.editingFinished.connect(self.editingFinished)
+        self._line_edit.textChanged.connect(self.textChanged)
+        self._line_edit.textEdited.connect(self.textEdited)
+
+        self._main_layout.addWidget(self._line_edit)
+        self._main_layout.addWidget(self._btn)
+        self.setLayout(self._main_layout)
+
+    def text(self) -> str:
+        return self._line_edit.text()
+
+    def setText(self, text: str):
+        self._line_edit.setText(text)
+
+    def btnText(self) -> str:
+        return self._btn.text()
+
+    def setBtnText(self, text: str):
+        self._btn.setText(text)
+
+
+class TagManageWindget(QDialog):
+    """
+    Виджет управления тегами.
+    :var _labels: константы GuiLabels.
+    :var _tags: теги, размещённые в виджете.
+    :var _line_edit_new_tag: виджет ввода нового тега.
+    :var _line_edit_btn_text: текст кнопки виджета ввода.
+    """
+
+    tag_added = Signal(str)  # Тег добавлен
+    tag_deleted = Signal(str)  # Тег удален
+    btn_save_pressed = Signal()  # Нажата кнопка сохранения, передаёт текущие теги в виджете
+
+    def __init__(self, labels: GuiLabels):
+        super().__init__()
+        self._view = UiTagManageWidget()
+        self._view.setupUi(self)
+        self._view.btn_add_tag.clicked.connect(self._on_btn_add_tag_pressed)
+        self._view.btn_save.clicked.connect(self.press_btn_save)
+        self._view.btn_save.setFocus()
+
+        self._labels = labels
+        self._tags: set = set()
+        self._line_edit_new_tag: LineEditBtn | None = None
+        self._line_edit_btn_text: str | None = None
+
+    def _on_btn_add_tag_pressed(self):
+        self._view.btn_add_tag.setDisabled(True)
+        self._line_edit_new_tag = LineEditBtn('')
+        self._view.frm_tags.addWidget(self._line_edit_new_tag)
+        self._line_edit_new_tag.setBtnText(self._line_edit_btn_text)
+        self._line_edit_new_tag.clicked.connect(lambda: self.add_tag(self._line_edit_new_tag.text()))
+
+    def _prepare_tag_exists(self):
+        win_dialog = QMessageBox()
+        win_dialog.setText(self._labels.tag_exists_message)
+        win_dialog.setWindowTitle(self._labels.title_win_message)
+        win_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        win_dialog.exec()
+
+    def _clear_widget(self):
+        """Очищает виджет."""
+        self._tags = set()
+        for idx in range(self._view.frm_tags.count()):
+            self._view.frm_tags.itemAt(idx).widget().hide()
+
+    def _place_tag_widget(self, tag: str):
+        """Размещает виджет тега."""
+        if self._line_edit_new_tag:
+            self._line_edit_new_tag.hide()
+            self._line_edit_new_tag = None
+        wdg_tag = TagCardWidget(tag)
+        wdg_tag.deleted.connect(self.delete_tag)
+        self._view.frm_tags.addWidget(wdg_tag)
+
+    def _delete_tag_widget(self, tag: str):
+        """Удаляет виджет тега."""
+        for idx in range(self._view.frm_tags.count()):
+            widget: TagCardWidget = self._view.frm_tags.itemAt().widget()
+            if widget.name == tag:
+                widget.hide()
+
+    def press_btn_save(self):
+        self.btn_save_pressed.emit()
+        self.hide()
+
+    def tags(self) -> tuple[str, ...]:
+        return tuple(self._tags)
+
+    def set_tags(self, tags: list[str] | tuple[str, ...] | set[str]):
+        """Устанавливает теги."""
+        self._tags = set(tags)
+        for tag in self._tags:
+            self._place_tag_widget(tag)
+
+    def setBtnSaveText(self, text: str):
+        self._view.btn_save.setText(text)
+
+    def btnSaveText(self) -> str:
+        return self._view.btn_save.text()
+
+    def setBtnConfirmText(self, text: str):  # Текст кнопки на виджете ввода тега (LineEditBtn)
+        self._line_edit_btn_text = text
+
+    def btnConfirmText(self) -> str | None:
+        return self._line_edit_btn_text
+
+    def setBtnAddText(self, text: str):
+        self._view.btn_add_tag.setText(text)
+
+    def btnAddText(self) -> str:
+        return self._view.btn_add_tag.text()
+
+    def add_tag(self, tag: str):
+        """Добавляет тег. Испускает сигнал tag_added."""
+        if tag in self._tags:
+            self._prepare_tag_exists()
+            return
+
+        self._tags.add(tag)
+        self._place_tag_widget(tag)
+        self._view.btn_add_tag.setEnabled(True)
+        self.tag_added.emit(tag)
+
+    def delete_tag(self, tag: str):
+        """Удаляет тег. Испускает сигнал tag_deleted."""
+        if tag in self._tags:
+            self._tags.remove(tag)
+            self.tag_deleted.emit(tag)
 
 
 if __name__ == '__main__':
