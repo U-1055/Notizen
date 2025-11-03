@@ -395,5 +395,6 @@ if __name__ == '__main__':
     for note in model.get_notes():
         model.delete_note(note)
 
-    for i in range(10):
-        model.add_note(f'note#{i}', ['tag1', 'tag2'])
+    for tag in model.get_tags():
+        model.delete_tag(tag)
+
