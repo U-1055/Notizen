@@ -3,8 +3,7 @@ from PySide6.QtCore import Signal
 from abc import abstractmethod, ABC
 from pathlib import Path
 
-from src.gui.widgets import NoteWindow
-
+from src.base import DataStructConst
 
 class IView(ABC):
     btn_create_note_pressed = Signal()
