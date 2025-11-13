@@ -4,9 +4,13 @@ from src.gui.view import MainWindow
 from src.gui.widgets import NoteView, NoteWindow
 from src.src.model import DataModel
 from src.base import GuiLabels, DataStructConst, GuiConst
+from src.src.requests_module import Requester
 from utils.utils import set_unique_note_name
 
+import typing as tp
+
 from PySide6.QtCore import Signal, QObject, Slot
+from requests import request
 
 
 class Logic:
@@ -14,12 +18,24 @@ class Logic:
     # Сигналы для тестов
     note_added_to_menu = Signal(NoteView)
 
-    def __init__(self, model, view, labels: GuiLabels, gui_const: GuiConst, data_struct_const: DataStructConst):
+    def __init__(
+            self,
+            model,
+            view,
+            server: str,
+            requester: Requester,
+            labels: GuiLabels = GuiLabels(),
+            gui_const: GuiConst = GuiConst(),
+            data_struct_const: DataStructConst = DataStructConst()
+    ):
         self._model: DataModel = model
         self._view: MainWindow = view
+        self._server = server
         self._labels: GuiLabels = labels
         self._gui_const: GuiConst = gui_const
         self._data_struct: DataStructConst = data_struct_const
+        self._requester = requester
+        self._user: dict = {}
 
         self._notes: list[str] = None
         self._tags: list[str] = None
@@ -35,7 +51,15 @@ class Logic:
         self._view.btn_dark_theme_pressed.connect(self._on_btn_dark_theme_pressed)
         self._view.btn_light_theme_pressed.connect(self._on_btn_light_theme_pressed)
 
+        win_auth = self._view.get_authorize_window()
+        win_auth.btn_confirm_pressed.connect(lambda: self._authorize('username#1', '12345'))
+        #self._authorize('username1', '12345')
         self._update_state()
+        self._requester.add_note(1, 'note#2', [])
+
+    def _authorize(self, login: str, password: str):
+        user_id = self._requester.authorize(login, password)  # Токен авторизации? Как обозначить то, что пользователь уже авторизован?
+        self._user = self._requester.get_user_data(user_id)
 
     def _on_btn_search_pressed(self):
         self._show_relevant_notes()

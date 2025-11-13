@@ -342,6 +342,44 @@ class DataModel:
             print(error)
 
 
+class Model:
+    """Модель для взаимодействия с файлами клиента."""
+
+    def __init__(self, resources_path: Path, config_path: Path, data_struct: DataStructConst = DataStructConst()):
+        self._resources_path = resources_path
+        self._config_path = config_path
+        self._data_struct = data_struct
+
+    def get_style(self, style: str) -> str:
+        """
+        Возвращает стиль QSS.
+        :param style: путь к стилю
+        """
+
+        style_file = QFile(style)
+
+        style_file.open(QFile.OpenModeFlag.ReadOnly)
+        style = style_file.readAll().toStdString()
+        return style
+
+    def get_last_style(self) -> str:
+        """Возвращает установленный пользователем стиль (из config.json)"""
+        with shelve.open(self._config_path, 'w') as config:
+            style = config.get(self._data_struct.style)
+            if style:
+                return style
+            else:
+                return self._data_struct.light_theme
+
+    def get_token(self) -> bytes:
+        with shelve.open(self._config_path) as config:
+            return config[self._data_struct.token]
+
+    def set_token(self, token: bytes):
+        with shelve.open(self._config_path, 'w') as config:
+            config[self._data_struct.token] = token
+
+
 if __name__ == '__main__':
     def check_note(note: str, tags: list[str] | tuple[str, ...] = None, date_changing: str = None, content: str = None):
 

@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (QApplication, QGridLayout, QLabel, QLayout,
     QPushButton, QSizePolicy, QTextEdit, QVBoxLayout,
     QWidget)
 
+
 class Ui_Form(object):
     def setupUi(self, Form):
         if not Form.objectName():

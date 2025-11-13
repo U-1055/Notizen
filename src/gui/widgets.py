@@ -447,5 +447,20 @@ class TagManageWindget(QDialog):
             self.tag_deleted.emit(tag)
 
 
+class AuthorizeWindow(QWidget):
+    btn_confirm_pressed = Signal(str, str)
+
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def password(self) -> str:
+        return ''
+
+    @property
+    def login(self) -> str:
+        return ''
+
+
 if __name__ == '__main__':
     pass

@@ -41,27 +41,26 @@ class IModel(ABC):
                  data_struct: DataStructConst):
         pass
 
-
-    @abstractmethod
     @property
+    @abstractmethod
     def notes(self) -> Path:
         """Возвращает путь к папке с заметками."""
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def notes_data(self) -> Path:
         """Возвращает путь к базе данных."""
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def resources(self) -> Path:
         """Возвращает путь к файлу ресурсов."""
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def data_struct(self) -> DataStructConst:
         """Возвращает экземпляр класса набора констант DataStructConst."""
         pass

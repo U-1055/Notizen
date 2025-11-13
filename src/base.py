@@ -13,6 +13,8 @@ class DataStructConst:
     datetime_date_format = '%d.%m.%Y'
     light_theme = ':/styles/light_theme'
     dark_theme = ':/styles/dark_theme'
+    style = 'style'
+    token = 'token'
 
 
 class GuiConst:

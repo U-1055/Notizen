@@ -6,7 +6,7 @@ import typing as tp
 
 from src.interfaces import IView
 from src.gui.ui_view import Ui_Form
-from src.gui.widgets import NoteView, NoteWindow, MessageListWidget, TagManageWindget
+from src.gui.widgets import NoteView, NoteWindow, MessageListWidget, TagManageWindget, AuthorizeWindow
 from src.gui.tags_widget import TagWidget
 from src.base import GuiLabels
 
@@ -132,6 +132,9 @@ class MainWindow(QMainWindow):
     def get_tag_widget(self) -> TagWidget:
         """Возвращает виджет тегов."""
         return self._view.wdg_tags
+
+    def get_authorize_window(self) -> AuthorizeWindow:
+        return AuthorizeWindow()
 
     def show_tag_manage_widget(self) -> TagManageWindget:
         wdg_tags_manage = TagManageWindget(self._labels)
