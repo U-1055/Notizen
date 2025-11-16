@@ -371,11 +371,11 @@ class Model:
             else:
                 return self._data_struct.light_theme
 
-    def get_token(self) -> bytes:
+    def get_token(self) -> str:
         with shelve.open(self._config_path) as config:
             return config[self._data_struct.token]
 
-    def set_token(self, token: bytes):
+    def set_token(self, token: str):
         with shelve.open(self._config_path, 'w') as config:
             config[self._data_struct.token] = token
 

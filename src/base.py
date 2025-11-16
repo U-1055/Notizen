@@ -45,3 +45,7 @@ class GuiLabels:
     title_win_message = 'Сообщение'
     title_tags_manage_widget = 'Редактирование тегов'
 
+
+class APIResponses:
+    unauth = 'Unauthorized'
+    unknown_arg = 'Unknown arg'

@@ -461,6 +461,25 @@ class AuthorizeWindow(QWidget):
     def login(self) -> str:
         return ''
 
+    def show_error(self, error: str):
+        print(error)
+
+class RegisterWindow(QWidget):
+    btn_confirm_pressed = Signal()
+
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def password(self) -> str:
+        return ''
+
+    @property
+    def login(self) -> str:
+        return ''
+
+    def show_error(self, error: str):
+        print(error)
 
 if __name__ == '__main__':
     pass

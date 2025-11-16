@@ -1,16 +1,19 @@
 import datetime
+import logging as log
 
 from src.gui.view import MainWindow
-from src.gui.widgets import NoteView, NoteWindow
-from src.src.model import DataModel
-from src.base import GuiLabels, DataStructConst, GuiConst
-from src.src.requests_module import Requester
+from src.gui.widgets import NoteView, NoteWindow, AuthorizeWindow
+from src.src.model import DataModel, Model
+from src.base import GuiLabels, DataStructConst, GuiConst, APIResponses
+from src.src.requests_module import Requester, HttpError400, HttpError401
 from utils.utils import set_unique_note_name
 
 import typing as tp
 
 from PySide6.QtCore import Signal, QObject, Slot
 from requests import request
+
+logger = log.getLogger()
 
 
 class Logic:
@@ -26,14 +29,16 @@ class Logic:
             requester: Requester,
             labels: GuiLabels = GuiLabels(),
             gui_const: GuiConst = GuiConst(),
-            data_struct_const: DataStructConst = DataStructConst()
+            data_struct_const: DataStructConst = DataStructConst(),
+            server_const: APIResponses = APIResponses()
     ):
-        self._model: DataModel = model
+        self._model: Model = model
         self._view: MainWindow = view
         self._server = server
         self._labels: GuiLabels = labels
         self._gui_const: GuiConst = gui_const
         self._data_struct: DataStructConst = data_struct_const
+        self._server_const = server_const
         self._requester = requester
         self._user: dict = {}
 
@@ -51,15 +56,38 @@ class Logic:
         self._view.btn_dark_theme_pressed.connect(self._on_btn_dark_theme_pressed)
         self._view.btn_light_theme_pressed.connect(self._on_btn_light_theme_pressed)
 
-        win_auth = self._view.get_authorize_window()
-        win_auth.btn_confirm_pressed.connect(lambda: self._authorize('username#1', '12345'))
-        #self._authorize('username1', '12345')
+        session_token = self._model.get_token()  # Получить текущий токен
+        try:
+            username = self._requester.check_authorize(session_token)
+            self._user = self._requester.get_user_data(username)
+        except HttpError401:
+            win_auth = self._view.get_authorize_window()
+            win_auth.btn_confirm_pressed.connect(lambda: self._authorize('username1', '12345'))
+            self._authorize('user11', '10102', win_auth)
         self._update_state()
-        self._requester.add_note(1, 'note#2', [])
 
-    def _authorize(self, login: str, password: str):
-        user_id = self._requester.authorize(login, password)  # Токен авторизации? Как обозначить то, что пользователь уже авторизован?
-        self._user = self._requester.get_user_data(user_id)
+    def _authorize(self, login: str, password: str, win_auth: AuthorizeWindow):
+        try:
+            session_token = self._requester.authorize(login, password)  # Получает токен
+            self._model.set_token(session_token)
+            self._user = self._requester.get_user_data(login)
+        except HttpError400 as error:
+            if error.args[0] == self._server_const.unknown_arg:
+                win_auth.show_error('Unknown login or password')
+            else:
+                raise error
+
+    def _register(self, login: str, password: str, win_auth: AuthorizeWindow):
+        try:
+            self._requester.register(login, password)
+        except HttpError400 as error:
+            if error.args[0] == self._server_const.unknown_arg:
+                win_auth.show_error('User with this login already exists')
+                return
+            else:
+                raise error
+
+        self._authorize(login, password, win_auth)
 
     def _on_btn_search_pressed(self):
         self._show_relevant_notes()
@@ -141,32 +169,15 @@ class Logic:
         self._init_menu(relevant_notes)
 
     def _update_state(self):
-        damaged_notes = self._model.validate_files()
-
-        self._notes = list(filter(lambda note: note not in damaged_notes, self._model.get_notes()))
+        self._notes = self._requester.get_user_notes(self._user['id'], self._model.get_token())
         self._notes_struct: dict[str, list[str]] = {}
+        print(self._user)
 
-        tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags()))  # Настройка виджета тегов
+        tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._requester.get_user_tags(self._user['id'], self._model.get_token())))  # Настройка виджета тегов
         tag_widget = self._view.get_tag_widget()
         tag_widget.set_tag_menu(tag_menu)
 
-        notes_tags = self._model.get_tags()
-
-        if notes_tags:
-            for tag in notes_tags:  # Инициализация notes_struct
-                self._notes_struct[tag] = []
-
-        for note in self._notes:  # Добавление заметки в списки по её тегам
-            tags = self._model.get_note_tags(note)
-            if tags:
-                for tag in tags:
-                    self._notes_struct[tag].append(note)
-
-        if damaged_notes:  # Если есть повреждённые заметки
-            win_damaged_notes = self._view.open_damaged_notes_window()
-            win_damaged_notes.set_elements(damaged_notes)
-            win_damaged_notes.elements_chosen.connect(self._reclaim_damaged_notes)
-
+        print(self._user)
         if self._view.search_text() or self._view.get_tag_widget().tags():
             self._show_relevant_notes()
         else:
