@@ -26,6 +26,13 @@ class Requester:
         self._server = server
         self._addresses = addresses
 
+    def _send_request(self, request: requests.Response):
+        """Обрабатывает ответ запроса и вызывает нужные исключения."""
+        if request.status_code == 401:
+            raise HttpError401(request)
+        elif request.status_code == 400:
+            raise HttpError400(request)
+
     def check_authorize(self, token_: str):
         request = requests.post(url=f'{self._server}/user/{token_}/check_auth')
         if request.status_code == 401:
@@ -45,6 +52,7 @@ class Requester:
         request = requests.get(f'{self._server}/{user_id}/notes', auth=token_)
         if request.status_code == 401:
             raise HttpError401(APIResponses().unauth)
+
         return request.content
 
     def get_user_tags(self, user_id: int, token_: str) -> tuple:

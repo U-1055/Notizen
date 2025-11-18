@@ -66,6 +66,9 @@ class Logic:
             self._authorize('user11', '10102', win_auth)
         self._update_state()
 
+    def _send_request(self,):
+        """"""
+
     def _authorize(self, login: str, password: str, win_auth: AuthorizeWindow):
         try:
             session_token = self._requester.authorize(login, password)  # Получает токен
