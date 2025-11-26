@@ -5,7 +5,7 @@ from src.gui.view import MainWindow
 from src.gui.widgets import NoteView, NoteWindow, AuthorizeWindow
 from src.src.model import DataModel, Model
 from src.base import GuiLabels, DataStructConst, GuiConst, APIResponses
-from src.src.requests_module import Requester, HttpError400, HttpError401
+from src.src.requests_module import Requester, HttpError400, HttpError401, HTTPError500
 from utils.utils import set_unique_note_name
 
 import typing as tp
@@ -45,6 +45,7 @@ class Logic:
         self._notes: list[str] = None
         self._tags: list[str] = None
         self._notes_struct: dict[str, list[str]] = {}
+        self._requester.set_request_preparer(self._prepare_request)
 
         current_style = self._model.get_last_style()  # Установка стиля
         self._view.set_style(self._model.get_style(current_style))
@@ -56,23 +57,60 @@ class Logic:
         self._view.btn_dark_theme_pressed.connect(self._on_btn_dark_theme_pressed)
         self._view.btn_light_theme_pressed.connect(self._on_btn_light_theme_pressed)
 
-        session_token = self._model.get_token()  # Получить текущий токен
-        try:
-            username = self._requester.check_authorize(session_token)
-            self._user = self._requester.get_user_data(username)
-        except HttpError401:
-            win_auth = self._view.get_authorize_window()
-            win_auth.btn_confirm_pressed.connect(lambda: self._authorize('username1', '12345'))
-            self._authorize('user11', '10102', win_auth)
+        session_token = self._model.get_access_token()  # Получить текущий токен
+        if session_token:
+            try:
+                username = self._requester.check_authorize(session_token)['username']
+                if username:
+                    self._user = self._requester.get_user_data(username)
+                else:
+                    self._open_win_auth()
+
+            except HttpError401:
+                self._open_win_auth()
+            except HttpError400:
+                self._open_register_window()
+        else:
+            self._open_win_auth()
+
         self._update_state()
 
-    def _send_request(self,):
-        """"""
+    def _prepare_request(self, request_, *args, **kwargs) -> tp.Any:
+        """Обрабатывает запрос."""
+        try:
+            response = request_(*args, **kwargs)
+            return response
+        except HttpError401 as e:
+            try:
+                refresh_token = self._model.get_refresh_token()
+                self._requester.check_authorize(refresh_token)
+            except HttpError401:
+                self._open_win_auth()
+
+        except HTTPError500 as e:
+            raise e
+        except HttpError400 as e:
+            raise e
+
+    def _open_win_auth(self):
+        win_auth = self._view.get_authorize_window()
+        win_auth.btn_confirm_pressed.connect(lambda: self._authorize('username', 'password', win_auth))
+        print('Enter username and password')
+        username = input('username: ')
+        password = input('password:')
+        self._authorize(username, password, AuthorizeWindow())
+
+    def _open_register_window(self):
+        print('Registration')
+        username = input('username: ')
+        password = input('password:')
+        self._register(username, password, AuthorizeWindow())
 
     def _authorize(self, login: str, password: str, win_auth: AuthorizeWindow):
         try:
             session_token = self._requester.authorize(login, password)  # Получает токен
-            self._model.set_token(session_token)
+            self._model.set_access_token(session_token['access_token'])
+            self._model.set_refresh_token(session_token['refresh_token'])
             self._user = self._requester.get_user_data(login)
         except HttpError400 as error:
             if error.args[0] == self._server_const.unknown_arg:
@@ -135,12 +173,12 @@ class Logic:
     def _create_new_note(self):
 
         name = set_unique_note_name(self._labels.base_note_name, self._notes)
-        self._model.add_note(name, [])
+        self._requester.add_note(self._user['id'], name, [])
 
         note_window = self._view.open_note_window()
         note_window = self._set_note_window(note_window, name, [], datetime.date.today().strftime(self._data_struct.datetime_date_format))
 
-        note_handler = NoteWindowHandler(name, note_window, self._model, self._labels, DataStructConst())
+        note_handler = NoteWindowHandler(name, note_window, self._requester, self._labels, DataStructConst())
         note_handler.closed.connect(self._close_note)
 
     def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
@@ -172,13 +210,15 @@ class Logic:
         self._init_menu(relevant_notes)
 
     def _update_state(self):
-        self._notes = self._requester.get_user_notes(self._user['id'], self._model.get_token())
+        self._notes = self._requester.get_user_notes(self._user['id'], self._model.get_access_token())
+        if self._notes is None:
+            self._notes = []
         self._notes_struct: dict[str, list[str]] = {}
-        print(self._user)
 
-        tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._requester.get_user_tags(self._user['id'], self._model.get_token())))  # Настройка виджета тегов
-        tag_widget = self._view.get_tag_widget()
-        tag_widget.set_tag_menu(tag_menu)
+
+        #tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._requester.get_user_tags(self._user['id'], self._model.get_token())))  # Настройка виджета тегов
+        #tag_widget = self._view.get_tag_widget()
+        #tag_widget.set_tag_menu(tag_menu)
 
         print(self._user)
         if self._view.search_text() or self._view.get_tag_widget().tags():
@@ -186,7 +226,7 @@ class Logic:
         else:
             self._init_menu(self._notes)
 
-    def _init_menu(self, notes: tuple[str, ...] | list[str]):
+    def _init_menu(self, notes: tuple[dict, ...] | list[str]):
         self._view.clear_notes()
         if len(notes) == 0:
             self._view.show_no_found_label(self._labels.no_found)
@@ -195,13 +235,13 @@ class Logic:
 
             note_view = self._view.add_note()
 
-            note_view.name = note
-            content = self._model.get_note_content(note)
+            note_view.name = note['name']
+            content = 'self._requester.get_note_content(note)'
             if len(content) > self._gui_const.max_text_view_length:
                 content = f'{content[0:self._gui_const.max_text_view_length]}...'
             note_view.content = content
-            note_view.date_changing = self._model.get_note_date_changing(note)
-            note_view.tags = self._model.get_note_tags(note)
+            note_view.date_changing = note['date_changing']
+            note_view.tags = []
 
             note_view.setMenu(self._view.get_menu(((self._labels.delete, note_view.press_btn_delete),)))
             note_view.btn_delete_pressed.connect(self._delete_note)

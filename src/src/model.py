@@ -371,13 +371,21 @@ class Model:
             else:
                 return self._data_struct.light_theme
 
-    def get_token(self) -> str:
+    def get_access_token(self) -> str:
         with shelve.open(self._config_path) as config:
-            return config[self._data_struct.token]
+            return config[self._data_struct.access_token]
 
-    def set_token(self, token: str):
+    def get_refresh_token(self) -> str:
+        with shelve.open(self._config_path) as config:
+            return config[self._data_struct.refresh_token]
+
+    def set_access_token(self, access_token: str):
         with shelve.open(self._config_path, 'w') as config:
-            config[self._data_struct.token] = token
+            config[self._data_struct.access_token] = access_token
+
+    def set_refresh_token(self, refresh_token: str):
+        with shelve.open(self._config_path, 'w') as config:
+            config[self._data_struct.refresh_token] = refresh_token
 
 
 if __name__ == '__main__':

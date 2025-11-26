@@ -17,6 +17,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(30), nullable=False)
+
     tags = relationship('Tag')
     notes = relationship('Note')
 
@@ -60,14 +61,23 @@ class Note(Base):
     user = relationship(User, back_populates='notes')
     file = relationship(NoteFile)
 
+    def serialize(self) -> dict:
+        return {
+            'user_id': self.user_id,
+            'file_id': self.file_id,
+            'id': self.id,
+            'name': self.name,
+            'date_changing': self.date_changing,
+        }
+
 
 def get_engine() -> Engine:
     return create_engine('sqlite:///db/database.db')
 
 
 def init_db(engine: Engine):
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
-
 if __name__ == '__main__':
-    init_db(create_engine('sqlite:///database.db'))
+    init_db(create_engine('sqlite:///database.db', echo=True))

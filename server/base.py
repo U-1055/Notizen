@@ -16,4 +16,7 @@ class APIResponses:
 
 if __name__ == '__main__':
     info = ServerInfo
-    print(info.tags)
+
+    from datetime import datetime, timezone, timedelta
+    print(time_now)
+

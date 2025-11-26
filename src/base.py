@@ -14,7 +14,8 @@ class DataStructConst:
     light_theme = ':/styles/light_theme'
     dark_theme = ':/styles/dark_theme'
     style = 'style'
-    token = 'token'
+    access_token = 'access_token'
+    refresh_token = 'refresh_token'
 
 
 class GuiConst:

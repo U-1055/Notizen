@@ -448,7 +448,7 @@ class TagManageWindget(QDialog):
 
 
 class AuthorizeWindow(QWidget):
-    btn_confirm_pressed = Signal(str, str)
+    btn_confirm_pressed = Signal()
 
     def __init__(self):
         super().__init__()
