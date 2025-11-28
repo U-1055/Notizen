@@ -1,17 +1,14 @@
 from flask import Flask, request, abort, Response, jsonify
-import requests
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import logging
 import bcrypt
 
 from multiprocessing import Process
-from datetime import datetime, timedelta
+from datetime import timedelta
 import typing as tp
 
-import server.models as db
 from server.model import DataModel
-from src.base import DataStructConst
 from server.auth_module import Authenticator, get_hash
 from server.base import APIResponses
 from server.api_answers import APIResponseStruct
@@ -20,10 +17,11 @@ app = Flask('Notizen')
 engine = create_engine('sqlite:///database.db', echo=True)
 DBSession = sessionmaker(engine)
 data_model = DataModel(engine, DBSession)
-authenticator = Authenticator(access_token_lifetime=timedelta(minutes=15), refresh_token_lifetime=timedelta(hours=24), jwt_alg='HS256')
+authenticator = Authenticator(access_token_lifetime=timedelta(seconds=60), refresh_token_lifetime=timedelta(hours=24), jwt_alg='HS256')
 responses = APIResponses()
 api_struct = APIResponseStruct()
 logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 
 def response(status_code: int, data: tp.Any) -> Response:
@@ -103,7 +101,7 @@ def user_by_login(login: str):
     return jsonify(user_data)
 
 
-@app.route('/users/<int:user_id>/notes', methods=['GET', 'POST', 'PUT'])
+@app.route('/users/<int:user_id>/notes/', methods=['GET', 'POST', 'PUT'])
 def notes(user_id: int):
     token_ = request.headers.get('Authorization')
     if not authenticator.check_token(token_):
@@ -120,19 +118,32 @@ def notes(user_id: int):
         names = request.args.get('names')
         tags = request.args.get('tags')
 
-        return form_response(200, data_model.get_notes(user_id, names, tags, limit, offset))
+        return form_response(200, {api_struct.answer: data_model.get_notes(user_id, names, tags, limit, offset)})
 
     if request.method == 'POST':
         note_params = request.json
-        data_model.add_note(user_id, **note_params)
+        logger.warning(f'note params: {note_params}')
+        note_id = data_model.add_note(user_id, **note_params)
+        return form_response(200, {api_struct.resource_id: note_id})
+
+
+@app.route('/users/<int:user_id>/notes/<string:note_name>', methods=['PUT', 'DELETE'])
+def prepare_note(user_id: int, note_name: str):
+    token_ = request.headers.get('Authorization')
+    if not authenticator.check_token(token_):
+        return form_error(401, {api_struct.error_info: 'Unauthorized user'})
 
     if request.method == 'PUT':
         note_params = request.json
-        data_model.update_note(user_id, **note_params)
+        logger.warning(f'params{note_params}')
+        note_exists = data_model.update_note(user_id, note_name, **note_params)
+        if note_exists:  # Заметка существует и была обновлена
+            return form_response(200, {api_struct.description: 'OK'})
+        return form_response(404, {api_struct.error_info: 'Resource is note exists'})
 
     if request.method == 'DELETE':
-        name = request.args['name']
-        data_model.delete_note(user_id, name)
+        data_model.delete_note(user_id, note_name)
+        return form_response(200, {api_struct.description: 'OK'})
 
 
 @app.route('/users/<int:user_id>/tags', methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -157,13 +168,31 @@ def tags():
 
 
 @app.route('/check_auth', methods=['POST'])
-def authorize_by_token() -> Response:  # Возвращает логин и access_token по refresh-токену
-    refresh_token = request.json['refresh_token']
-    login = authenticator.get_user_login(refresh_token)
+def authorize_by_token() -> Response:  # Возвращает логин по access-токену
+    access_token = request.json['access_token']
+    login = authenticator.get_user_login(access_token)
+
+    logger.warning(f'Authorize_by_token: \naccess_token: {access_token}\nlogin: {login}\n')
     if login:
-        return form_response(200, {api_struct.answer: login})
+        return form_response(200, {api_struct.answer: {api_struct.username: login}})
     return form_error(401, {api_struct.error_info: 'Invalid token'})
 
+
+@app.route('/update_tokens', methods=['POST'])
+def update_tokens() -> Response:
+    """Возвращает пару access+refresh по refresh-токену."""
+    refresh_token = request.json['refresh_token']
+    tokens = authenticator.update_tokens(refresh_token)
+
+    logger.warning(f'Update_tokens:\nrefresh_token: {refresh_token}\ntokens: {tokens}')
+
+    if tokens:
+        return form_response(200, {
+            api_struct.access_token: tokens[api_struct.access_token],
+            api_struct.refresh_token: tokens[api_struct.refresh_token]
+                                   })
+    else:
+        return form_error(401, {api_struct.error_info: 'Invalid token'})
 
 @app.route('/authorize', methods=['POST'])
 def authorize() -> Response:
@@ -177,7 +206,7 @@ def authorize() -> Response:
         user_password = data_model.get_password_hash(login)
         if bcrypt.checkpw(bytes(password, 'utf-8'), bytes(user_password, 'utf-8')):  # Сохранённый пароль - хэш пароля
             user_id = data_model.get_user_id(login)
-            tokens = authenticator.get_tokens(login, user_id)
+            tokens = authenticator.get_tokens(login)
             return form_response(
                 200,
                 {
@@ -185,6 +214,8 @@ def authorize() -> Response:
                     api_struct.refresh_token: tokens['refresh_token']
                 }
             )
+        else:
+            return form_error(400, {api_struct.error_info: 'Unknown login or password'})
     else:
         return form_error(400, {api_struct.error_info: f'Unregistered user with login: {login}'})
 
@@ -198,7 +229,6 @@ def register():
         abort(response(400, responses.unknown_arg))
     else:
         data_model.add_user(login, get_hash(password))
-
 
 def run():
     app.run()

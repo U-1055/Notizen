@@ -29,5 +29,5 @@ if __name__ == '__main__':
                           DataStructConst())
         setup_gui(root_, app_)
 
-    except:
-        raise
+    except Exception as e:
+        raise e

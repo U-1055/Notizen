@@ -4,6 +4,10 @@ import bcrypt
 import hashlib
 import jwt
 import shelve
+import logging as log
+
+logger = log.getLogger()
+logger.setLevel(log.WARNING)
 
 
 class Authenticator:
@@ -31,6 +35,7 @@ class Authenticator:
             key=key,
             algorithm=self._jwt_alg
         )
+        logger.warning(f'refresh-token created: exp_time: {refresh_token_invalid_time}')
         return refresh_token
 
     def delete_token(self, login: str):
@@ -41,9 +46,13 @@ class Authenticator:
         with shelve.open('storage', 'r') as storage:
             return storage['secret']
 
-    def get_user_login(self, token_: str) -> str:
-        user_info = jwt.decode(token_, algorithms=self._jwt_alg)
-        return user_info['login']
+    def get_user_login(self, token_: str) -> str | None:
+        try:
+            user_info = jwt.decode(token_, algorithms=self._jwt_alg)
+            logger.warning(f'get_user_login: token: {user_info}')
+            return user_info['login']
+        except jwt.ExpiredSignatureError as e:
+            return
 
     def check_token_login(self, login: str, token: str) -> bool:
         """Проверка токена через логин пользователя."""
@@ -54,15 +63,30 @@ class Authenticator:
         return self._tokens[token]['user_id'] == user_id
 
     def check_token(self, token: str) -> bool:
-        token_info = jwt.decode(token, algorithms=self._jwt_alg)
-        if token_info:
-            return True
+        try:
+            token_info = jwt.decode(token, algorithms=self._jwt_alg)
+            if token_info:
+                return True
+        except jwt.ExpiredSignatureError:
+            return False
+        except jwt.InvalidTokenError:
+            return False
 
-    def update_tokens(self, refresh_token: str) -> dict:
-        token_ = jwt.decode(refresh_token, self._get_secret(), algorithms=self._jwt_alg)
-        # ToDo: обновление токенов
+    def update_tokens(self, refresh_token: str) -> dict | None:
+        """Обновляет пару токенов по refresh-токену. Возвращает access- и refresh-токены."""
 
-    def get_tokens(self, login: str, user_id: int) -> dict:
+        try:
+            token_ = jwt.decode(refresh_token, self._get_secret(), algorithms=self._jwt_alg)
+            new_tokens = self.get_tokens(token_['login'])
+            return new_tokens
+        except jwt.ExpiredSignatureError:
+            return
+        except jwt.InvalidTokenError:
+            return
+        except KeyError:
+            return
+
+    def get_tokens(self, login: str) -> dict:
         """Отдаёт пару токенов access+refresh."""
         for token_ in self._tokens:
             if self._tokens[token_]['login'] == login:

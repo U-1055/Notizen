@@ -36,6 +36,10 @@ class HTTPError500(HTTPError):
     pass
 
 
+class HTTPError404(HTTPError):
+    pass
+
+
 class Requester:
     """
     API-слой.
@@ -64,6 +68,8 @@ class Requester:
             raise HttpError401(response)
         elif response.status_code == 400:
             raise HttpError400(response)
+        elif response.status_code == 404:
+            raise HTTPError404
 
     @staticmethod
     def _preparing_request(func: tp.Callable):
@@ -73,35 +79,45 @@ class Requester:
                 if self._request_preparer:
                     response = self._request_preparer(func, *(self, *args), **kwargs)
                     return response
+                else:
+                    return func(self, *args, **kwargs)
             except HTTPError as e:
                 raise e
 
         return prepare_request
 
-    def _send_request(self, request, *args, **kwargs) -> requests.Response:
-        """Отправляет запрос и обрабатывает ошибки ответа."""
-        response = request(*args, **kwargs)
-        self._prepare_result(response)
-        return response
+    def update_note(self, note_name: str, note_data: dict, user_id: int, token_: str):
+        response = requests.put(f'{self._server}/users/{user_id}/notes/{note_name}', json=note_data, headers={'Authorization': token_})
+        try:
+            self._prepare_result(response)
+        except HTTPError as e:
+            raise e
 
     def set_request_preparer(self, preparer: tp.Callable):
         self._request_preparer = preparer
 
     @_preparing_request
+    def update_tokens(self, refresh_token: str) -> dict:
+        response = requests.post(f'{self._server}/update_tokens', json={'refresh_token': refresh_token})
+        try:
+            self._prepare_result(response)
+        except HTTPError as e:
+            raise e
+
+        return response.json()
+
+    @_preparing_request
     def check_authorize(self, token_: str):
         """
 
-        :param token_: refresh_token.
+        :param token_: access_token.
         :return:
         """
-        request = self._send_request(requests.post, url=f'{self._server}/check_auth', json={'refresh_token': token_})
+        request = requests.post(url=f'{self._server}/check_auth', json={'access_token': token_})
 
         if request.status_code == 401:
             raise HttpError401(APIResponses.unauth)
-        if len(request.content) == 0:
-            return False
-        else:
-            return request.json()
+        return request.json().get(self._api_responses.answer)
 
     @_preparing_request
     def authorize(self, login: str, password: str) -> dict:
@@ -113,16 +129,27 @@ class Requester:
 
     @_preparing_request
     def add_note(self, user_id: int, name: str, tags: list[str] | tuple[str, ...], token_: str):
-        requests.post(f'{self._server}/users/{user_id}/notes', json={"name": name, "tags": tags}, headers=form_headers(token_))
+        response = requests.post(f'{self._server}/users/{user_id}/notes', json={"name": name, "tags": tags}, headers=form_headers(token_))
+        try:
+            self._prepare_result(response)
+        except HTTPError as e:
+            raise e
+
+    def delete_note(self, user_id: int, name: str, token_: str):
+        response = requests.delete(f'{self._server}/users/{user_id}/notes/{name}', headers={'Authorization': token_})
+        try:
+            self._prepare_result(response)
+        except HTTPError as e:
+            raise e
 
     @_preparing_request
     def get_user_notes(self, user_id: int, token_: str) -> tuple:
-        """Возвращает список заметок (их моделей)."""
+        """Возвращает список заметок"""
         request = requests.get(f'{self._server}/users/{user_id}/notes', headers=form_headers(token_), params={'limit': 0, 'offset': 0})
         if request.status_code == 401:
             raise HttpError401(APIResponses().unauth)
 
-        return request.json()
+        return request.json().get(self._api_responses.answer)
 
     @_preparing_request
     def get_user_tags(self, user_id: int, token_: str) -> tuple:
@@ -140,8 +167,6 @@ class Requester:
     @_preparing_request
     def get_user_data(self, login: str) -> dict:
         response = requests.get(f'{self._server}/users/{login}')
-        print(response.content)
-        print(response.json())
         return response.json()
 
     @_preparing_request

@@ -5,7 +5,7 @@ from src.gui.view import MainWindow
 from src.gui.widgets import NoteView, NoteWindow, AuthorizeWindow
 from src.src.model import DataModel, Model
 from src.base import GuiLabels, DataStructConst, GuiConst, APIResponses
-from src.src.requests_module import Requester, HttpError400, HttpError401, HTTPError500
+from src.src.requests_module import Requester, HttpError400, HttpError401, HTTPError500, HTTPError404, HTTPError
 from utils.utils import set_unique_note_name
 
 import typing as tp
@@ -14,6 +14,8 @@ from PySide6.QtCore import Signal, QObject, Slot
 from requests import request
 
 logger = log.getLogger()
+logger.setLevel(10)
+logger.debug(f'{__name__} started')
 
 
 class Logic:
@@ -42,10 +44,9 @@ class Logic:
         self._requester = requester
         self._user: dict = {}
 
-        self._notes: list[str] = None
+        self._notes: dict = {}
         self._tags: list[str] = None
         self._notes_struct: dict[str, list[str]] = {}
-        self._requester.set_request_preparer(self._prepare_request)
 
         current_style = self._model.get_last_style()  # Установка стиля
         self._view.set_style(self._model.get_style(current_style))
@@ -58,22 +59,33 @@ class Logic:
         self._view.btn_light_theme_pressed.connect(self._on_btn_light_theme_pressed)
 
         session_token = self._model.get_access_token()  # Получить текущий токен
-        if session_token:
+        if session_token:  # Есть токен
             try:
-                username = self._requester.check_authorize(session_token)['username']
-                if username:
+                username = self._requester.check_authorize(session_token)['username']  # Получение логина по access
+                self._user = self._requester.get_user_data(username)
+            except HttpError401:  # Access не валиден
+                try:  # Обновить токены
+                    self._update_tokens()
+                    username = self._requester.check_authorize(self._model.get_access_token())['username']  # Получение логина по access
                     self._user = self._requester.get_user_data(username)
-                else:
+                except HttpError401:  # refresh не валиден
                     self._open_win_auth()
-
-            except HttpError401:
-                self._open_win_auth()
-            except HttpError400:
+            except HttpError400:  # Пользователь не зарегистрирован
                 self._open_register_window()
-        else:
+        else:  # Нет токена
             self._open_win_auth()
 
         self._update_state()
+
+    def _update_tokens(self):
+        try:
+            tokens = self._requester.update_tokens(self._model.get_refresh_token())
+            access_token = tokens['access_token']
+            refresh_token = tokens['refresh_token']
+            self._model.set_access_token(access_token)
+            self._model.set_refresh_token(refresh_token)
+        except HttpError401:
+            self._open_win_auth()
 
     def _prepare_request(self, request_, *args, **kwargs) -> tp.Any:
         """Обрабатывает запрос."""
@@ -81,16 +93,7 @@ class Logic:
             response = request_(*args, **kwargs)
             return response
         except HttpError401 as e:
-            try:
-                refresh_token = self._model.get_refresh_token()
-                self._requester.check_authorize(refresh_token)
-            except HttpError401:
-                self._open_win_auth()
-
-        except HTTPError500 as e:
-            raise e
-        except HttpError400 as e:
-            raise e
+            self._update_tokens()
 
     def _open_win_auth(self):
         win_auth = self._view.get_authorize_window()
@@ -113,10 +116,7 @@ class Logic:
             self._model.set_refresh_token(session_token['refresh_token'])
             self._user = self._requester.get_user_data(login)
         except HttpError400 as error:
-            if error.args[0] == self._server_const.unknown_arg:
-                win_auth.show_error('Unknown login or password')
-            else:
-                raise error
+            win_auth.show_error('Unknown login or password')
 
     def _register(self, login: str, password: str, win_auth: AuthorizeWindow):
         try:
@@ -172,13 +172,12 @@ class Logic:
 
     def _create_new_note(self):
 
-        name = set_unique_note_name(self._labels.base_note_name, self._notes)
-        self._requester.add_note(self._user['id'], name, [])
+        name = set_unique_note_name(self._labels.base_note_name, list(self._notes.keys()))
 
         note_window = self._view.open_note_window()
-        note_window = self._set_note_window(note_window, name, [], datetime.date.today().strftime(self._data_struct.datetime_date_format))
+        note_window = self._set_note_window(note_window, name, [], datetime.date.today().strftime(self._data_struct.datetime_date_format), '')
 
-        note_handler = NoteWindowHandler(name, note_window, self._requester, self._labels, DataStructConst())
+        note_handler = NoteWindowHandler(name, note_window, self._requester, self._user, self._update_tokens, self._model, self._labels, DataStructConst())
         note_handler.closed.connect(self._close_note)
 
     def _reclaim_damaged_notes(self, damaged_notes: tuple[str, ...]):
@@ -210,23 +209,30 @@ class Logic:
         self._init_menu(relevant_notes)
 
     def _update_state(self):
-        self._notes = self._requester.get_user_notes(self._user['id'], self._model.get_access_token())
+        try:
+            notes = self._requester.get_user_notes(self._user['id'], self._model.get_access_token())
+            for note in notes:
+                self._notes[note['name']] = {
+                    self._data_struct.date_changing: note[self._data_struct.date_changing]
+                                             }
+        except HttpError401:
+            self._update_tokens()
+            notes = self._requester.get_user_notes(self._user['id'], self._model.get_access_token())
+            for note in notes:
+                self._notes[note['name']] = {
+                    self._data_struct.date_changing: note[self._data_struct.date_changing]
+                                             }
+
         if self._notes is None:
-            self._notes = []
+            self._notes = {}
         self._notes_struct: dict[str, list[str]] = {}
 
-
-        #tag_menu = self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._requester.get_user_tags(self._user['id'], self._model.get_token())))  # Настройка виджета тегов
-        #tag_widget = self._view.get_tag_widget()
-        #tag_widget.set_tag_menu(tag_menu)
-
-        print(self._user)
         if self._view.search_text() or self._view.get_tag_widget().tags():
             self._show_relevant_notes()
         else:
             self._init_menu(self._notes)
 
-    def _init_menu(self, notes: tuple[dict, ...] | list[str]):
+    def _init_menu(self, notes: dict):
         self._view.clear_notes()
         if len(notes) == 0:
             self._view.show_no_found_label(self._labels.no_found)
@@ -235,12 +241,12 @@ class Logic:
 
             note_view = self._view.add_note()
 
-            note_view.name = note['name']
+            note_view.name = note
             content = 'self._requester.get_note_content(note)'
             if len(content) > self._gui_const.max_text_view_length:
                 content = f'{content[0:self._gui_const.max_text_view_length]}...'
             note_view.content = content
-            note_view.date_changing = note['date_changing']
+            note_view.date_changing = notes[note]['date_changing']
             note_view.tags = []
 
             note_view.setMenu(self._view.get_menu(((self._labels.delete, note_view.press_btn_delete),)))
@@ -252,24 +258,23 @@ class Logic:
         """Обрабатывает открытие заметки."""
         note_window = self._view.open_note_window()
 
-        self._set_note_window(note_window, note_view.name, note_view.tags, note_view.date_changing)
+        self._set_note_window(note_window, note_view.name, note_view.tags, note_view.date_changing, note_view.content)
 
-        note_handler = NoteWindowHandler(note_view.name, note_window, self._model, self._labels, DataStructConst())
+        note_handler = NoteWindowHandler(note_view.name, note_window, self._requester, self._user, self._update_tokens, self._model, self._labels, DataStructConst())
         note_handler.closed.connect(self._close_note)
 
     def _set_note_window(self,
                          note_window: NoteWindow,
                          name: str,
                          tags: list[str] | tuple[str, ...],
-                         date_changing: str
+                         date_changing: str,
+                         content: str
                          ) -> NoteWindow:
         wdg_tags = note_window.get_tag_widget()
-        wdg_tags.set_tag_menu(self._view.get_menu(tuple((str(tag), lambda: None) for tag in self._model.get_tags())))
 
-        note_window.tags = tags
         note_window.name = name
         note_window.date_changing = date_changing
-        note_window.content = self._model.get_note_content(name)
+        note_window.content = content
 
         menu = self._view.get_menu(
             (
@@ -286,22 +291,34 @@ class Logic:
         self._update_state()
 
     def _delete_note(self, note_view: NoteView):
-        self._model.delete_note(note_view.name)
-        self._notes.pop(self._notes.index(note_view.name))
+        self._requester.delete_note(self._user['id'], note_view.name, self._model.get_access_token())
+        self._notes.pop(note_view.name)
         note_view.hide()
 
 
 class NoteWindowHandler(QObject):
     closed = Signal()  # Handler сам обрабатывает сигналы от NoteWindow
 
-    def __init__(self, name: str, note_window: NoteWindow, model: DataModel, labels: GuiLabels, data_struct_const: DataStructConst):
+    def __init__(self,
+                 name: str,
+                 note_window: NoteWindow,
+                 requester: Requester,
+                 user: dict,
+                 update_tokens: tp.Callable,
+                 model: Model,
+                 labels: GuiLabels,
+                 data_struct_const: DataStructConst):
         super().__init__()
-        self._model = model
+        self._requester = requester
         self._labels = labels
         self._data_struct = data_struct_const
         self._name = name
         self._name_changed = False
         self._note_changed = False
+        self._update_tokens = update_tokens
+        self._note_data = {'name': '.', 'date_changing': '', 'tags': [], 'content': ''}
+        self._user = user
+        self._model = model
 
         self._note_window = note_window
 
@@ -320,14 +337,34 @@ class NoteWindowHandler(QObject):
 
         if self._name_changed:
             try:
-                self._model.change_note_name(self._name, self._note_window.name)
+                self._note_data['name'] = self._note_window.name
                 self._name = self._note_window.name
             except ValueError:  # Если название неуникально
                 self._note_window.show_error(f'{self._note_window.name} - {self._labels.name_is_not_unique_error}')
 
-        self._model.set_note_tags(self._name, self._note_window.tags)
-        self._model.set_note_content(self._name, self._note_window.content)
-        self._model.set_note_date_changing(self._name, str(datetime.date.today().strftime(self._data_struct.datetime_date_format)))
+        self._note_data['tags'] = self._note_window.tags
+        self._note_data['content'] = self._note_window.content
+        self._note_data['date_changing'] = datetime.date.today().strftime(self._data_struct.datetime_date_format)
+        try:
+            self._requester.update_note(self._note_data['name'],
+                                        {
+                                            'tags': self._note_data['tags'],
+                                            'date_changing': self._note_data['date_changing'],
+                                            'content': self._note_data['content']},
+                                        self._user['id'],
+                                        self._model.get_access_token()
+                                        )
+        except HTTPError404:
+            try:
+                self._requester.add_note(self._user['id'], self._note_data['name'], self._note_data['tags'], self._model.get_access_token())
+                self._requester.update_note(self._note_data['name'], self._note_data, self._user['id'], self._model.get_access_token())
+            except HttpError401:
+                self._update_tokens()
+                self._requester.add_note(self._user['id'], self._note_data['name'], self._note_data['tags'],
+                                         self._model.get_access_token())
+        except HttpError401:
+            self._update_tokens()
+            self._requester.add_note(self._user['id'], self._note_data['name'], self._note_data['tags'], self._model.get_access_token())
 
         self._name_changed = False
         self._note_changed = False

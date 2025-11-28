@@ -1,4 +1,5 @@
 import datetime
+import logging as log
 
 from src.interfaces import IModel
 from sqlalchemy.orm import sessionmaker
@@ -9,6 +10,9 @@ import server.models as db
 from server.models import User
 import typing as tp
 from contextlib import contextmanager
+
+
+logger = log.getLogger()
 
 
 class DataModel:
@@ -52,11 +56,7 @@ class DataModel:
             if user_data[0]:
                 return user_data[0].serialize()
 
-    def get_notes(self, user_id: int, names: tuple = None, tags: tuple = None, limit: int = None, offset: int = None):
-        if limit is None:
-            limit = 0
-        if offset is None:
-            offset = 0
+    def get_notes(self, user_id: int, names: tuple = None, tags: tuple = None, limit: int = 0, offset: int = 0):
 
         query = select(db.Note).join(db.User).where(db.User.id == user_id)
         if names:
@@ -68,20 +68,18 @@ class DataModel:
             session: Session
             notes = session.execute(query)
             notes = [note[0] for note in notes]
-            print(notes)
-            if 0 <= offset < len(notes) and 0 <= limit < len(notes):
-                if limit + offset + 1 < len(notes):
-                    return [note.serialize() for note in notes[offset: limit + offset + 1]]
-                else:
-                    return [note.serialize() for note in notes[offset:]]
 
-    def update_note(self, user_id: int, name: int):
+            return [note.serialize() for note in notes[offset:]]
+
+    def update_note(self, user_id: int, name: str, tags: list, content: str, date_changing: str):
+        date_changing = datetime.datetime.strptime(date_changing, '%d.%m.%Y')
+
         with self._session_maker() as session, session.begin():
-            session.execute(update(db.Note).where(db.Note.user_id == user_id and db.Note.name == name))
+            session.execute(update(db.Note).where(db.Note.user_id == user_id and db.Note.name == name), {'date_changing': date_changing})
 
     def delete_note(self, user_id: int, name: str):
         with self._session_maker() as session, session.begin():
-            session.execute(delete(db.Note).where(db.Note.user_id == user_id and db.Note.name == name))
+            session.execute(delete(db.Note).where(db.Note.user_id == user_id).where(db.Note.name == name))
 
     def add_tag(self, user_id: int, name: str):
         with self._session_maker() as session, session.begin():
@@ -126,6 +124,8 @@ class DataModel:
             tag_ids = session.query(db.Tag).join(db.User).where(db.User.id == user_id and db.Tag.name in tags)
             note = db.Note(user_id=user_id, name=name, file_id=1)
             session.add(note)
+            logger.warning(f'Add note: {name}, tags: {tags}')
+
         with self._session_maker() as session, session.begin():
             for id_ in tag_ids:
                 session.add(db.NoteTag(note_id=note.id, tag_id=id_, file_id=1))
@@ -134,7 +134,6 @@ class DataModel:
         with self._session_maker() as session, session.begin():
             user = db.User(name=name, password=hashed_password)
             session.add(user)
-
 
 def db_config_1(session: Session):
     for i in range(50):
@@ -149,11 +148,7 @@ def db_config_1(session: Session):
 if __name__ == '__main__':
     from server.models import init_db
     engine = create_engine('sqlite:///database.db', echo=True)
-    init_db(engine)
-    session_fabric = sessionmaker(engine)
-
-    data_model = DataModel(engine, session_fabric)
-    with session_fabric() as session, session.begin():
-        user = db.User(name='', password='')
-        session.add(user)
+    with Session(bind=engine) as session, session.begin():
+        result = session.execute(select(db.Note).where(db.Note.user_id == 2))
+        print([note for note in result])
 
